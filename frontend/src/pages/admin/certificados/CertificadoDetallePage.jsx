@@ -214,7 +214,7 @@ export default function CertificadoDetallePage() {
               <Info label="Fecha de expedición">{formatDate(c.fechaExpedicion)}</Info>
               <Info label="Fecha de vencimiento">{formatDate(c.fechaVencimiento)}</Info>
               <Info label="Número de certificado" mono>{c.numeroCertificado}</Info>
-              <Info label="Código de consulta" mono>{c.codigoVerificacion}</Info>
+              <Info label="Código de verificación" mono>{c.codigoVerificacion}</Info>
               <Info label="Emitido por">{c.emitidoPor}</Info>
             </dl>
             {suspendido && c.observacionSuspension && (
@@ -260,7 +260,7 @@ export default function CertificadoDetallePage() {
         </div>
 
         <Card title="Verificación pública">
-          <QRBlock url={c.urlVerificacion} codigo={c.codigoVerificacion} numero={c.numeroCertificado} />
+          <QRBlock codigo={c.codigoVerificacion} numero={c.numeroCertificado} />
           <GuardarCertificadoButton constancia={constanciaDesdeInterno(c)} variant="primary" className="mt-4" />
           <a
             href={`/verificar/${c.codigoVerificacion}`}

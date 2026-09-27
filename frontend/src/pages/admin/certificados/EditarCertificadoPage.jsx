@@ -62,7 +62,7 @@ function Formulario({ certificado: c, cursos }) {
           {c.tipoDocumento} {c.numeroDocumento}
         </p>
         <p className="mt-3 text-sm text-muted">
-          Código de consulta: <span className="font-mono font-semibold text-ink">{c.codigoVerificacion}</span> (no cambia al editar)
+          Código de verificación: <span className="font-mono font-semibold text-ink">{c.codigoVerificacion}</span> (no cambia al editar)
         </p>
       </Card>
 

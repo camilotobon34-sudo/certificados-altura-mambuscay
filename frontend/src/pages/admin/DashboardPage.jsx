@@ -82,7 +82,7 @@ export default function DashboardPage() {
                 id="buscar-dashboard"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Buscar por documento, nombre, número o código de consulta"
+                placeholder="Buscar por documento, nombre, número o código de verificación"
                 className="h-12 w-full rounded-[var(--radius-control)] border-0 bg-white pr-3 pl-10 text-ink placeholder:text-muted/80 focus:ring-2 focus:ring-accent focus:outline-none"
               />
             </div>

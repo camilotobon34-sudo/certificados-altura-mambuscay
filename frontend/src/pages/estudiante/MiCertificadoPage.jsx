@@ -35,7 +35,7 @@ export default function MiCertificadoPage() {
       <PageHeader title={c.numeroCertificado} backTo="/mis-certificados" backLabel="Mis certificados" />
       <div className="flex flex-col gap-4">
         <Card title="Código QR de verificación" actions={<StatusBadge estado={c.estado} />}>
-          <QRBlock url={c.urlVerificacion} codigo={c.codigoVerificacion} numero={c.numeroCertificado} />
+          <QRBlock codigo={c.codigoVerificacion} numero={c.numeroCertificado} />
           <p className="mt-4 text-center text-sm text-muted">
             Presente este código a su empleador o inspector para verificar el certificado.
           </p>

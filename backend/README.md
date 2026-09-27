@@ -54,7 +54,7 @@ database/        migraciones
 | GET | `/api/certificados`, `/api/certificados/resumen`, `/api/certificados/:id` | Administrador, Personal autorizado |
 | POST | `/api/certificados` (emitir), `/:id/suspender`, `/:id/reactivar` | Administrador, Personal autorizado |
 | POST | `/api/certificados/:id/anular` | **Solo Administrador** (motivo + confirmación del número) |
-| PUT | `/api/certificados/:id` (edita número, curso, horas y fechas; el código de consulta no cambia) | **Solo Administrador** |
+| PUT | `/api/certificados/:id` (edita número, curso, horas y fechas; el código de verificación no cambia) | **Solo Administrador** |
 | GET/PUT | `/api/configuracion` | Lectura interna · edición Administrador |
 | GET/POST/PUT | `/api/usuarios` | Solo Administrador |
 | GET | `/api/estudiante/certificados`, `/api/estudiante/certificados/:id` | Estudiante (solo los propios) |

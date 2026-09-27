@@ -87,7 +87,7 @@ export function CertificadoPublicoCard({ certificado: c, persona, consultadoEn, 
       )}
 
       <footer className="border-t border-line bg-surface px-5 py-3 text-xs text-muted">
-        Consultado el {formatDateTime(consultadoEn)} · Código de consulta {c.codigo_verificacion}
+        Consultado el {formatDateTime(consultadoEn)} · Código de verificación {c.codigo_verificacion}
       </footer>
     </article>
   )

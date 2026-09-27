@@ -2,9 +2,10 @@ import { useRef } from 'react'
 import { QRCodeCanvas } from 'qrcode.react'
 import { Download, Printer } from 'lucide-react'
 import { Button } from '../ui/Button.jsx'
+import { verificationUrl } from '../../lib/verification.js'
 
 // El QR apunta a la URL pública de verificación (RF-09).
-export function QRBlock({ url, codigo, numero, showActions = true }) {
+export function QRBlock({ codigo, numero, showActions = true }) {
   const wrapperRef = useRef(null)
 
   const download = () => {
@@ -19,10 +20,10 @@ export function QRBlock({ url, codigo, numero, showActions = true }) {
   return (
     <div className="flex flex-col items-center gap-3 text-center">
       <div ref={wrapperRef} className="rounded-[var(--radius-control)] border border-line bg-white p-3">
-        <QRCodeCanvas value={url} size={176} level="M" marginSize={1} fgColor="#1A2332" title={`Verificar ${codigo}`} />
+        <QRCodeCanvas value={verificationUrl(codigo)} size={176} level="M" marginSize={1} fgColor="#1A2332" title={`Verificar ${codigo}`} />
       </div>
       <div>
-        <p className="text-xs uppercase tracking-wide text-muted">Código de consulta</p>
+        <p className="text-xs uppercase tracking-wide text-muted">Código de verificación</p>
         <p className="font-mono text-lg font-medium tracking-wider text-ink">{codigo}</p>
       </div>
       {showActions && (

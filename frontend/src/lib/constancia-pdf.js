@@ -123,6 +123,7 @@ export async function descargarConstanciaPdf(c) {
     ['Tipo de formación', c.tipoActividad],
     ['Intensidad horaria', c.intensidadHoraria ? `${c.intensidadHoraria} horas` : null],
     ['Número de certificado', c.numeroCertificado],
+    ['Código de verificación (para la consulta pública)', c.codigoVerificacion],
     ['Fecha de expedición', formatDate(c.fechaExpedicion)],
     ['Fecha de vencimiento', formatDate(c.fechaVencimiento)],
     ['Centro de formación', c.centroFormacion],

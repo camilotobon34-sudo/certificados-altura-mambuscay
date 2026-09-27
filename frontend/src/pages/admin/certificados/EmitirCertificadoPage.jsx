@@ -12,6 +12,7 @@ import { Stepper } from '../../../components/ui/Stepper.jsx'
 import { useApi } from '../../../hooks/useApi.js'
 import { api } from '../../../lib/api.js'
 import { addMonthsIso, formatDate, fullName, tituloFormacion, todayIso } from '../../../lib/format.js'
+import { verificationUrl } from '../../../lib/verification.js'
 
 const STEPS = ['Persona', 'Curso y nivel', 'Fechas e intensidad', 'Revisión']
 const FECHAS_INICIALES = () => ({ fechaExpedicion: todayIso(), fechaVencimiento: '', intensidadHoraria: '', numeroCertificado: '' })
@@ -185,7 +186,7 @@ function Resumen({ persona, curso, fechas }) {
     ['Fecha de expedición', formatDate(fechas.fechaExpedicion)],
     ['Fecha de vencimiento', formatDate(fechas.fechaVencimiento)],
     ['Número de certificado', fechas.numeroCertificado.trim().toUpperCase() || 'Automático'],
-    ['Código de consulta', `Automático (MAM-${fechas.fechaExpedicion.slice(0, 4)}-NNN)`],
+    ['Código de verificación', 'Automático y único (p. ej. 7K4P-X9QM-2RTD)'],
   ]
   return (
     <dl className="divide-y divide-line rounded-[var(--radius-control)] border border-line">
@@ -279,7 +280,7 @@ export default function EmitirCertificadoPage() {
           <div className="grid items-center gap-8 md:grid-cols-[1fr_auto]">
             <div>
               <Alert tone="success" title="El certificado se emitió correctamente" className="mb-4" />
-              <p className="text-sm text-muted">Código de consulta (entregar al titular)</p>
+              <p className="text-sm text-muted">Código de verificación (entregar al titular)</p>
               <p className="mb-3 inline-block rounded-[var(--radius-control)] bg-accent-soft px-3 py-1 font-mono text-2xl font-semibold text-ink">
                 {emitido.codigoVerificacion}
               </p>
@@ -288,7 +289,7 @@ export default function EmitirCertificadoPage() {
               <p className="text-sm text-muted">Persona</p>
               <p className="mb-3 font-semibold">{fullName(emitido)}</p>
               <p className="text-sm text-muted">URL pública de verificación</p>
-              <p className="mb-6 break-all font-mono text-sm">{emitido.urlVerificacion}</p>
+              <p className="mb-6 break-all font-mono text-sm">{verificationUrl(emitido.codigoVerificacion)}</p>
               <div className="flex flex-wrap gap-2">
                 <Button to={`/admin/certificados/${emitido.id}`} icon={Eye}>
                   Ver detalle
@@ -298,7 +299,7 @@ export default function EmitirCertificadoPage() {
                 </Button>
               </div>
             </div>
-            <QRBlock url={emitido.urlVerificacion} codigo={emitido.codigoVerificacion} numero={emitido.numeroCertificado} />
+            <QRBlock codigo={emitido.codigoVerificacion} numero={emitido.numeroCertificado} />
           </div>
         </Card>
       </>

@@ -1,6 +1,6 @@
 import { env } from '../../config/env.js';
 import { query, withTransaction } from '../../config/db.js';
-import { PREFIJO_CODIGO, formatearCodigoConsulta, formatearNumeroCertificado } from '../../utils/codes.js';
+import { formatearNumeroCertificado, generarCodigoVerificacion } from '../../utils/codes.js';
 import {
   ESTADOS,
   REENTRENAMIENTO_MIN_HORAS,
@@ -192,18 +192,6 @@ const esDuplicadoDe = (error, indice) =>
 
 const NUMERO_DUPLICADO = 'Ya existe un certificado con ese número de certificado';
 
-// Nunca reutiliza códigos: toma el mayor consecutivo existente del año (incluidos anulados).
-const siguienteConsecutivo = async (conn, anio) => {
-  const prefijo = `${PREFIJO_CODIGO}-${anio}-`;
-  const [[{ ultimo }]] = await conn.query(
-    `SELECT MAX(CAST(SUBSTRING(codigo_verificacion, ?) AS UNSIGNED)) AS ultimo
-       FROM certificados
-      WHERE codigo_verificacion LIKE ? AND codigo_verificacion REGEXP ?`,
-    [prefijo.length + 1, `${prefijo}%`, `^${prefijo}[0-9]+$`],
-  );
-  return Number(ultimo ?? 0) + 1;
-};
-
 export const emitir = async (datos, usuario) => {
   const [persona] = await query('SELECT id, activo FROM personas_certificadas WHERE id = ?', [
     datos.personaId,
@@ -223,12 +211,11 @@ export const emitir = async (datos, usuario) => {
     );
     const baseUrl = (config?.url_base_publica || env.publicVerifyBaseUrl).replace(/\/+$/, '');
     const anio = datos.fechaExpedicion.slice(0, 4);
-    const consecutivo = await siguienteConsecutivo(conn, anio);
 
     let insertId;
     let codigo;
     for (let intento = 0; intento < 5 && !insertId; intento += 1) {
-      codigo = formatearCodigoConsulta(anio, consecutivo + intento);
+      codigo = generarCodigoVerificacion();
       try {
         // Sin número manual, numero_certificado temporal = código (único); luego se asigna el consecutivo por id.
         const [result] = await conn.query(
@@ -264,7 +251,7 @@ export const emitir = async (datos, usuario) => {
       usuarioId: usuario.id,
       anterior: null,
       nuevo: estadoInicial,
-      observacion: `Emisión del certificado (código de consulta ${codigo})`,
+      observacion: `Emisión del certificado (código de verificación ${codigo})`,
     });
     return insertId;
   });
@@ -280,7 +267,7 @@ const CAMPOS_EDITABLES = {
   fecha_vencimiento: 'fecha de vencimiento',
 };
 
-// Edición de datos (solo Administrador). El código de consulta y la persona no cambian.
+// Edición de datos (solo Administrador). El código de verificación y la persona no cambian.
 export const actualizar = async (id, datos, usuario) => {
   await withTransaction(async (conn) => {
     const [[actual]] = await conn.query(

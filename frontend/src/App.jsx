@@ -38,7 +38,7 @@ const router = createBrowserRouter([
       { index: true, element: <ConsultaCertificadoPage /> },
       { path: 'escanear', element: <ScanQrPage /> },
       { path: 'verificar', element: <Navigate to="/" replace /> },
-      // Destino de los QR emitidos (url_verificacion): precarga el código; no cambiar la ruta.
+      // Destino de los QR (/verificar/:codigo): precarga el código; no cambiar la ruta.
       { path: 'verificar/:codigo', element: <ConsultaCertificadoPage /> },
     ],
   },

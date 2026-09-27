@@ -37,7 +37,7 @@ const consultaSchema = z.object({
   codigo: z
     .string()
     .transform((v) => v.replace(/\s/g, '').toUpperCase())
-    .pipe(z.string().regex(/^[A-Z0-9-]{4,64}$/, 'Ingrese el código de consulta del certificado')),
+    .pipe(z.string().regex(/^[A-Z0-9-]{4,64}$/, 'Ingrese el código de verificación del certificado')),
 });
 
 const NO_VERIFICADO = 'No fue posible verificar el certificado con los datos ingresados.';

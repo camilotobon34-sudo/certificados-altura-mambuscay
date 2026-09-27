@@ -9,7 +9,7 @@ import { Input, Select } from '../../components/ui/Field.jsx'
 import { Spinner } from '../../components/ui/Feedback.jsx'
 import { api } from '../../lib/api.js'
 import { NOMBRE_SISTEMA } from '../../lib/brand.js'
-import { extractVerificationCode } from '../../lib/verification.js'
+import { extractVerificationCode, looksLikeCertificateNumber } from '../../lib/verification.js'
 
 // Respaldo si no hay conexión al cargar; los códigos coinciden con tipos_documento.
 const TIPOS_RESPALDO = [
@@ -76,7 +76,10 @@ export default function ConsultaCertificadoPage() {
       errors.numeroDocumento = 'Ingrese un número de identificación válido.'
     }
     if (!/^[A-Za-z0-9-]{4,64}$/.test(form.codigo.replace(/\s/g, ''))) {
-      errors.codigo = 'Ingrese el código de consulta del certificado.'
+      errors.codigo = 'Ingrese el código de verificación del certificado.'
+    } else if (looksLikeCertificateNumber(extractVerificationCode(form.codigo))) {
+      errors.codigo =
+        'Ese es el número de certificado. Ingrese el código de verificación que aparece junto al código QR.'
     }
     return errors
   }
@@ -154,7 +157,7 @@ export default function ConsultaCertificadoPage() {
 
         <form onSubmit={consultar} noValidate className="flex flex-col gap-4 p-5 sm:p-6">
           <p className="text-muted">
-            Ingrese sus datos y el código de consulta que aparece en su certificado de formación en trabajo en alturas
+            Ingrese sus datos y el código de verificación que aparece en su certificado de formación en trabajo en alturas
             (Resolución 4272 de 2021). No necesita crear una cuenta.
           </p>
           {codigoRuta && (
@@ -187,9 +190,9 @@ export default function ConsultaCertificadoPage() {
             className="font-mono tracking-wider"
           />
           <Input
-            label="Código de consulta"
+            label="Código de verificación"
             required
-            placeholder="Ej. MAM-2026-001"
+            placeholder="Ej. 7K4P-X9QM-2RTD"
             hint="Está impreso en su certificado, junto al código QR."
             value={form.codigo}
             onChange={set('codigo')}

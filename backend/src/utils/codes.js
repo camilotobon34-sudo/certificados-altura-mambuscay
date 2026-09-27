@@ -1,9 +1,15 @@
-// Código de consulta: MAM-{año}-{consecutivo del año, mínimo 3 dígitos}. Se guarda en
-// certificados.codigo_verificacion (UNIQUE); los códigos anteriores siguen siendo válidos.
-export const PREFIJO_CODIGO = 'MAM';
+import { randomInt } from 'node:crypto';
 
-export const formatearCodigoConsulta = (anio, consecutivo) =>
-  `${PREFIJO_CODIGO}-${anio}-${String(consecutivo).padStart(3, '0')}`;
+// Código de verificación: aleatorio, no adivinable e independiente del número de certificado
+// (p. ej. 7K4P-X9QM-2RTD). Se guarda en certificados.codigo_verificacion (UNIQUE); los códigos
+// ya emitidos en otros formatos (MAM-2026-001) siguen siendo válidos.
+// Sin 0/O ni 1/I/L para evitar confusiones al transcribirlo.
+const ALFABETO_CODIGO = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+
+export const generarCodigoVerificacion = () =>
+  Array.from({ length: 3 }, () =>
+    Array.from({ length: 4 }, () => ALFABETO_CODIGO[randomInt(ALFABETO_CODIGO.length)]).join(''),
+  ).join('-');
 
 const PREFIJOS_NIVEL = {
   JEFE_AREA: 'JA',

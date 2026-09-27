@@ -1,4 +1,5 @@
 import { fullName, maskDocument } from './format.js'
+import { verificationUrl } from './verification.js'
 
 // Normaliza los datos para la constancia PDF. El documento siempre se enmascara.
 
@@ -8,7 +9,7 @@ export const constanciaDesdePublico = (c, persona, consultadoEn) => {
   return {
     numeroCertificado: c.numero_certificado,
     codigoVerificacion: c.codigo_verificacion,
-    urlVerificacion: c.url_verificacion,
+    urlVerificacion: verificationUrl(c.codigo_verificacion),
     nombreCompleto: p.nombre_completo,
     tipoDocumento: p.tipo_documento,
     documentoEnmascarado: p.numero_documento_enmascarado,
@@ -28,7 +29,7 @@ export const constanciaDesdePublico = (c, persona, consultadoEn) => {
 export const constanciaDesdeInterno = (c) => ({
   numeroCertificado: c.numeroCertificado,
   codigoVerificacion: c.codigoVerificacion,
-  urlVerificacion: c.urlVerificacion,
+  urlVerificacion: verificationUrl(c.codigoVerificacion),
   nombreCompleto: fullName(c),
   tipoDocumento: c.tipoDocumento,
   documentoEnmascarado: maskDocument(c.numeroDocumento),
