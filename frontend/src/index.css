@@ -1,0 +1,66 @@
+@import 'tailwindcss';
+
+/* Tokens de docs/01-identidad-visual y docs/06-prototipo-figma (sección 6.2). */
+@theme {
+  --color-primary: #0a3a4a;
+  --color-primary-dark: #062833;
+  --color-accent: #d97706;
+  --color-accent-soft: #fef3c7;
+  --color-surface: #f3f6f8;
+  --color-surface-elevated: #ffffff;
+  --color-ink: #1a2332;
+  --color-muted: #5b6b7a;
+  --color-line: #d0dae2;
+
+  --color-success: #15803d;
+  --color-success-soft: #dcfce7;
+  --color-warning: #b45309;
+  --color-warning-soft: #fef3c7;
+  --color-danger: #b91c1c;
+  --color-danger-soft: #fee2e2;
+  --color-info: #0369a1;
+  --color-info-soft: #e0f2fe;
+
+  --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-sans: 'Source Sans 3 Variable', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --radius-control: 6px;
+  --radius-card: 10px;
+
+  --shadow-elevation-1: 0 1px 2px rgb(26 35 50 / 0.08);
+  --shadow-elevation-2: 0 4px 12px rgb(26 35 50 / 0.1);
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-surface font-sans text-base text-ink antialiased;
+  }
+
+  h1,
+  h2 {
+    @apply font-display font-semibold tracking-wide;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+@media print {
+  body {
+    background: white;
+  }
+}
