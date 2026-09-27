@@ -19,7 +19,8 @@ export function AuthProvider({ children }) {
       })
       .catch((error) => {
         if (error.name === 'AbortError') return
-        tokenStorage.clear()
+        // Solo un 401 invalida el token; ante un fallo temporal se conserva para el siguiente intento.
+        if (error.status === 401) tokenStorage.clear()
         setStatus('anonymous')
       })
     return () => controller.abort()

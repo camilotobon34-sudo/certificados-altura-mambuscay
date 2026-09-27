@@ -28,7 +28,7 @@ export const env = {
     database: required('DB_NAME', 'certificados_altura_mambuscay'),
   },
   // Vacía o inválida usa el valor por defecto: en mysql2 un límite 0 significa "sin límite".
-  dbConnectionLimit: Number(process.env.DB_CONNECTION_LIMIT) || (process.env.VERCEL ? 2 : 10),
+  dbConnectionLimit: Number(process.env.DB_CONNECTION_LIMIT) || (process.env.VERCEL ? 1 : 10),
   jwt: {
     secret: required('JWT_SECRET', 'dev-secret-no-usar-en-produccion'),
     expiresIn: process.env.JWT_EXPIRES_IN ?? '8h',

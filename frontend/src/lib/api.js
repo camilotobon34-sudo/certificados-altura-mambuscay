@@ -42,7 +42,33 @@ const buildUrl = (path, params) => {
   return qs ? `${url}?${qs}` : url
 }
 
-export const request = async (path, { method = 'GET', body, params, signal } = {}) => {
+// Las lecturas (GET) se reintentan ante fallos transitorios (red o 5xx) antes de mostrar un error.
+const GET_RETRY_DELAYS_MS = [600, 1500]
+
+const isTransient = (error) => error instanceof ApiError && (error.status === 0 || error.status >= 500)
+
+const wait = (ms, signal) =>
+  new Promise((resolve, reject) => {
+    const timer = setTimeout(resolve, ms)
+    signal?.addEventListener('abort', () => {
+      clearTimeout(timer)
+      reject(new DOMException('Aborted', 'AbortError'))
+    }, { once: true })
+  })
+
+export const request = async (path, options = {}) => {
+  const method = options.method ?? 'GET'
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await send(path, options)
+    } catch (error) {
+      if (method !== 'GET' || !isTransient(error) || attempt >= GET_RETRY_DELAYS_MS.length) throw error
+      await wait(GET_RETRY_DELAYS_MS[attempt], options.signal)
+    }
+  }
+}
+
+const send = async (path, { method = 'GET', body, params, signal } = {}) => {
   const token = tokenStorage.get()
   let response
   try {
