@@ -1,6 +1,7 @@
 // En desarrollo la URL queda vacía y Vite redirige /api al backend local (vite.config.js).
 const PRODUCTION_API_URL = 'https://certificados-altura-mambuscay.vercel.app'
-const API_URL = (import.meta.env.VITE_API_URL ?? (import.meta.env.PROD ? PRODUCTION_API_URL : '')).replace(/\/+$/, '')
+// `||` y no `??`: una VITE_API_URL vacía en Vercel no debe anular la URL de producción.
+const API_URL = (import.meta.env.VITE_API_URL || (import.meta.env.PROD ? PRODUCTION_API_URL : '')).replace(/\/+$/, '')
 const TOKEN_KEY = 'mambuscay.token'
 
 export const SESSION_EXPIRED_EVENT = 'mambuscay:session-expired'
