@@ -1,7 +1,10 @@
-// En desarrollo la URL queda vacía y Vite redirige /api al backend local (vite.config.js).
+// En localhost la URL queda vacía y Vite redirige /api al backend local (vite.config.js).
+// Se decide por el dominio en tiempo de ejecución para no depender de VITE_API_URL ni de
+// NODE_ENV en Vercel: fuera de localhost siempre se usa el backend de producción.
 const PRODUCTION_API_URL = 'https://certificados-altura-mambuscay.vercel.app'
-// `||` y no `??`: una VITE_API_URL vacía en Vercel no debe anular la URL de producción.
-const API_URL = (import.meta.env.VITE_API_URL || (import.meta.env.PROD ? PRODUCTION_API_URL : '')).replace(/\/+$/, '')
+const LOCAL_HOSTS = ['localhost', '127.0.0.1', '[::1]']
+const isLocalHost = LOCAL_HOSTS.includes(window.location.hostname)
+const API_URL = (import.meta.env.VITE_API_URL || (isLocalHost ? '' : PRODUCTION_API_URL)).replace(/\/+$/, '')
 const TOKEN_KEY = 'mambuscay.token'
 
 export const SESSION_EXPIRED_EVENT = 'mambuscay:session-expired'
