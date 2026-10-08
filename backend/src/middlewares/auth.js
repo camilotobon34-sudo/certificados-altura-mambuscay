@@ -17,9 +17,11 @@ export const authenticate = async (req, _res, next) => {
 
   // Se consulta en cada petición para respetar desactivaciones y cambios de rol.
   const [usuario] = await query(
-    `SELECT u.id, u.nombres, u.apellidos, u.correo, u.activo, u.persona_id, r.codigo AS rol
+    `SELECT u.id, u.nombres, u.apellidos, u.correo, u.activo, u.persona_id,
+            td.codigo AS tipo_documento, u.numero_documento, r.codigo AS rol
        FROM usuarios u
        JOIN roles r ON r.id = u.rol_id
+       LEFT JOIN tipos_documento td ON td.id = u.tipo_documento_id
       WHERE u.id = ?`,
     [payload.sub],
   );

@@ -10,7 +10,12 @@ import { api } from '../../../lib/api.js'
 
 const columns = [
   { key: 'nombre', header: 'Nombre', render: (u) => `${u.nombres} ${u.apellidos}` },
-  { key: 'correo', header: 'Correo' },
+  { key: 'documento', header: 'Documento', render: (u) => (
+      u.numeroDocumento
+        ? <span className="font-mono text-sm">{u.tipoDocumento} {u.numeroDocumento}</span>
+        : <span className="text-muted">Sin documento</span>
+    ) },
+  { key: 'correo', header: 'Correo', render: (u) => u.correo ?? <span className="text-muted">—</span> },
   { key: 'rolNombre', header: 'Rol', render: (u) => (
       <>
         {u.rolNombre}

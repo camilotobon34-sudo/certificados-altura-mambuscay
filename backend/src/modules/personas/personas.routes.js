@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { query } from '../../config/db.js';
+import { query, withTransaction } from '../../config/db.js';
 import { validate } from '../../middlewares/validate.js';
 import { estadoEfectivoSql } from '../../utils/constants.js';
 import { badRequest, notFound } from '../../utils/http-error.js';
@@ -101,13 +101,23 @@ router.post('/', validate(personaSchema), async (req, res) => {
 router.put('/:id', validate(personaSchema), async (req, res) => {
   const p = req.body;
   await assertTipoDocumento(p.tipoDocumentoId);
-  const result = await query(
-    `UPDATE personas_certificadas
-        SET tipo_documento_id = ?, numero_documento = ?, nombres = ?, apellidos = ?,
-            correo = ?, telefono = ?, activo = ?
-      WHERE id = ?`,
-    [p.tipoDocumentoId, p.numeroDocumento.toUpperCase(), p.nombres, p.apellidos, p.correo, p.telefono, p.activo, req.params.id],
-  );
+  const numeroDocumento = p.numeroDocumento.toUpperCase();
+  // La cuenta de cliente vinculada ingresa con el documento de la persona.
+  const result = await withTransaction(async (conn) => {
+    const [actualizada] = await conn.execute(
+      `UPDATE personas_certificadas
+          SET tipo_documento_id = ?, numero_documento = ?, nombres = ?, apellidos = ?,
+              correo = ?, telefono = ?, activo = ?
+        WHERE id = ?`,
+      [p.tipoDocumentoId, numeroDocumento, p.nombres, p.apellidos, p.correo, p.telefono, p.activo, req.params.id],
+    );
+    await conn.execute('UPDATE usuarios SET tipo_documento_id = ?, numero_documento = ? WHERE persona_id = ?', [
+      p.tipoDocumentoId,
+      numeroDocumento,
+      req.params.id,
+    ]);
+    return actualizada;
+  });
   if (result.affectedRows === 0) throw notFound('Persona no encontrada');
   const [persona] = await query(`${SELECT_PERSONA} WHERE p.id = ?`, [req.params.id]);
   res.json({ persona });

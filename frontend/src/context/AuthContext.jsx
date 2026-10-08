@@ -36,8 +36,13 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired)
   }, [])
 
-  const login = useCallback(async (correo, password) => {
-    const { token, usuario: u } = await api.post('/auth/login', { correo, password })
+  const login = useCallback(async ({ tipoUsuario, tipoDocumento, numeroDocumento, password }) => {
+    const { token, usuario: u } = await api.post('/auth/login', {
+      tipoUsuario,
+      tipoDocumento,
+      numeroDocumento,
+      password,
+    })
     tokenStorage.set(token)
     setUsuario(u)
     setStatus('authenticated')

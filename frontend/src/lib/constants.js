@@ -9,7 +9,7 @@ export const ROLES = Object.freeze({
 export const ROL_LABELS = {
   [ROLES.ADMIN]: 'Administrador',
   [ROLES.PERSONAL]: 'Personal autorizado',
-  [ROLES.ESTUDIANTE]: 'Estudiante',
+  [ROLES.ESTUDIANTE]: 'Cliente',
 }
 
 export const INTERNAL_ROLES = [ROLES.ADMIN, ROLES.PERSONAL]

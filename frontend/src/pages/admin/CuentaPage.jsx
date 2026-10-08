@@ -50,7 +50,14 @@ export default function CuentaPage() {
 
   return (
     <>
-      <PageHeader title="Mi cuenta" description={`${usuario.nombres} ${usuario.apellidos} · ${usuario.correo} · ${ROL_LABELS[usuario.rol]}`} />
+      <PageHeader title="Mi cuenta" description={[
+          `${usuario.nombres} ${usuario.apellidos}`,
+          usuario.numeroDocumento && `${usuario.tipoDocumento} ${usuario.numeroDocumento}`,
+          usuario.correo,
+          ROL_LABELS[usuario.rol],
+        ]
+          .filter(Boolean)
+          .join(' · ')} />
       <Card title="Cambiar contraseña" className="max-w-xl">
         <form onSubmit={submit} noValidate className="flex flex-col gap-4">
           <p className="text-sm text-muted">

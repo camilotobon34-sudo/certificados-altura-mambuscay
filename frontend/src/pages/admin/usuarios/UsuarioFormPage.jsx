@@ -12,7 +12,17 @@ import { useCatalogos } from '../../../hooks/useCatalogos.js'
 import { api } from '../../../lib/api.js'
 import { fullName } from '../../../lib/format.js'
 
-const EMPTY = { nombres: '', apellidos: '', correo: '', rolId: '', personaId: null, password: '', activo: true }
+const EMPTY = {
+  nombres: '',
+  apellidos: '',
+  tipoDocumentoId: '',
+  numeroDocumento: '',
+  correo: '',
+  rolId: '',
+  personaId: null,
+  password: '',
+  activo: true,
+}
 
 function PersonaPicker({ persona, onSelect, error }) {
   const [q, setQ] = useState('')
@@ -39,7 +49,7 @@ function PersonaPicker({ persona, onSelect, error }) {
               }
             }}
             error={error}
-            hint={persona ? `Seleccionada: ${fullName(persona)} (${persona.numeroDocumento ?? ''})` : 'El estudiante solo verá los certificados de esta persona.'}
+            hint={persona ? `Seleccionada: ${fullName(persona)} (${persona.numeroDocumento ?? ''})` : 'El cliente solo verá los certificados de esta persona e ingresará con su documento.'}
           />
         </div>
         <Button variant="secondary" icon={Search} onClick={search}>Buscar</Button>
@@ -80,8 +90,20 @@ export default function UsuarioFormPage() {
   const existing = useApi(async (signal) => {
     if (!id) return null
     const { usuario } = await api.get(`/usuarios/${id}`, undefined, { signal })
-    setForm({ ...EMPTY, nombres: usuario.nombres, apellidos: usuario.apellidos, correo: usuario.correo, rolId: String(usuario.rolId), personaId: usuario.personaId, activo: Boolean(usuario.activo) })
-    if (usuario.personaId) setPersona({ id: usuario.personaId, nombres: usuario.persona })
+    setForm({
+      ...EMPTY,
+      nombres: usuario.nombres,
+      apellidos: usuario.apellidos,
+      tipoDocumentoId: usuario.tipoDocumentoId ? String(usuario.tipoDocumentoId) : '',
+      numeroDocumento: usuario.numeroDocumento ?? '',
+      correo: usuario.correo ?? '',
+      rolId: String(usuario.rolId),
+      personaId: usuario.personaId,
+      activo: Boolean(usuario.activo),
+    })
+    if (usuario.personaId) {
+      setPersona({ id: usuario.personaId, nombres: usuario.persona, numeroDocumento: usuario.numeroDocumento })
+    }
     return usuario
   }, [id])
 
@@ -98,7 +120,13 @@ export default function UsuarioFormPage() {
     setSaving(true)
     setError(null)
     try {
-      const body = { ...form, rolId: Number(form.rolId), personaId: esEstudiante ? (persona?.id ?? null) : null }
+      const body = {
+        ...form,
+        rolId: Number(form.rolId),
+        personaId: esEstudiante ? (persona?.id ?? null) : null,
+        tipoDocumentoId: esEstudiante || !form.tipoDocumentoId ? null : Number(form.tipoDocumentoId),
+        numeroDocumento: esEstudiante ? null : form.numeroDocumento,
+      }
       if (id) await api.put(`/usuarios/${id}`, body)
       else await api.post('/usuarios', body)
       navigate('/admin/usuarios', { replace: true })
@@ -116,7 +144,6 @@ export default function UsuarioFormPage() {
           {error && !Object.keys(fieldErrors).length && <Alert tone="error" title={error.message} className="md:col-span-2" />}
           <Input label="Nombres" required value={form.nombres} onChange={set('nombres')} error={fieldErrors.nombres} />
           <Input label="Apellidos" required value={form.apellidos} onChange={set('apellidos')} error={fieldErrors.apellidos} />
-          <Input label="Correo electrónico" type="email" required autoComplete="off" value={form.correo} onChange={set('correo')} error={fieldErrors.correo} />
           <Select
             label="Rol"
             required
@@ -126,7 +153,31 @@ export default function UsuarioFormPage() {
             error={fieldErrors.rolId}
             options={catalogos.data.roles.map((r) => ({ value: String(r.id), label: r.nombre }))}
           />
-          {esEstudiante && <PersonaPicker persona={persona} onSelect={setPersona} error={fieldErrors.personaId} />}
+          <Input label="Correo electrónico" type="email" autoComplete="off" value={form.correo} onChange={set('correo')} error={fieldErrors.correo} hint="Opcional." />
+          {esEstudiante ? (
+            <PersonaPicker persona={persona} onSelect={setPersona} error={fieldErrors.personaId} />
+          ) : (
+            <>
+              <Select
+                label="Tipo de identificación"
+                required
+                placeholder="Seleccione"
+                value={form.tipoDocumentoId}
+                onChange={set('tipoDocumentoId')}
+                error={fieldErrors.tipoDocumentoId}
+                options={catalogos.data.tiposDocumento.map((t) => ({ value: String(t.id), label: `${t.nombre} (${t.codigo})` }))}
+              />
+              <Input
+                label="Número de identificación"
+                required
+                autoComplete="off"
+                value={form.numeroDocumento}
+                onChange={set('numeroDocumento')}
+                error={fieldErrors.numeroDocumento}
+                hint="Con este documento inicia sesión."
+              />
+            </>
+          )}
           <Input
             label={id ? 'Nueva contraseña' : 'Contraseña'}
             type="password"

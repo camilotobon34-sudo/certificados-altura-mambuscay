@@ -9,33 +9,16 @@ import { Input, Select } from '../../components/ui/Field.jsx'
 import { Spinner } from '../../components/ui/Feedback.jsx'
 import { api } from '../../lib/api.js'
 import { NOMBRE_SISTEMA } from '../../lib/brand.js'
+import { TIPOS_ALFANUMERICOS, useTiposDocumentoPublicos } from '../../lib/tipos-documento.js'
 import { extractVerificationCode, looksLikeCertificateNumber } from '../../lib/verification.js'
 
-// Respaldo si no hay conexión al cargar; los códigos coinciden con tipos_documento.
-const TIPOS_RESPALDO = [
-  { codigo: 'CC', nombre: 'Cédula de ciudadanía' },
-  { codigo: 'CE', nombre: 'Cédula de extranjería' },
-  { codigo: 'PA', nombre: 'Pasaporte' },
-  { codigo: 'PPT', nombre: 'Permiso por protección temporal' },
-  { codigo: 'TI', nombre: 'Tarjeta de identidad' },
-]
-const ORDEN_TIPOS = TIPOS_RESPALDO.map((t) => t.codigo)
-const TIPOS_ALFANUMERICOS = new Set(['PA', 'PPT'])
-
 const NO_VERIFICADO = 'No fue posible verificar el certificado con los datos ingresados.'
-
-const ordenarTipos = (tipos) =>
-  [...tipos].sort((a, b) => {
-    const ia = ORDEN_TIPOS.indexOf(a.codigo)
-    const ib = ORDEN_TIPOS.indexOf(b.codigo)
-    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib)
-  })
 
 // Consulta pública (RF-15, RF-16): tipo + número de documento + código del certificado.
 // /verificar/:codigo (destino de los QR) precarga el código.
 export default function ConsultaCertificadoPage() {
   const { codigo: codigoRuta } = useParams()
-  const [tipos, setTipos] = useState(TIPOS_RESPALDO)
+  const tipos = useTiposDocumentoPublicos()
   const [form, setForm] = useState(() => ({
     tipoDocumento: '',
     numeroDocumento: '',
@@ -47,15 +30,6 @@ export default function ConsultaCertificadoPage() {
   const [requestError, setRequestError] = useState(null)
   const resultadoRef = useRef(null)
   const primerCampoRef = useRef(null)
-
-  useEffect(() => {
-    const controller = new AbortController()
-    api
-      .get('/public/tipos-documento', undefined, { signal: controller.signal })
-      .then(({ tipos: remotos }) => remotos?.length && setTipos(ordenarTipos(remotos)))
-      .catch(() => {})
-    return () => controller.abort()
-  }, [])
 
   useEffect(() => {
     if (estado === 'done' || estado === 'error') {
