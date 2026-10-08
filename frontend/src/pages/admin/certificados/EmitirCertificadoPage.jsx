@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
-import { ArrowLeft, ArrowRight, CircleCheck, Eye, FilePlus2, Search, UserPlus } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CircleCheck, Eye, FilePlus2, Search, TriangleAlert, UserPlus } from 'lucide-react'
 import { QRBlock } from '../../../components/certificados/QRBlock.jsx'
 import { Alert } from '../../../components/ui/Alert.jsx'
 import { Button } from '../../../components/ui/Button.jsx'
 import { Card } from '../../../components/ui/Card.jsx'
 import { EmptyState, ErrorState, Spinner } from '../../../components/ui/Feedback.jsx'
-import { Input } from '../../../components/ui/Field.jsx'
+import { Checkbox, Input } from '../../../components/ui/Field.jsx'
 import { PageHeader } from '../../../components/ui/PageHeader.jsx'
 import { Stepper } from '../../../components/ui/Stepper.jsx'
 import { useApi } from '../../../hooks/useApi.js'
@@ -21,7 +21,34 @@ const REENTRENAMIENTO_MIN = 8
 const minimoHoras = (curso) =>
   curso?.tipoActividadCodigo === 'REENTRENAMIENTO' ? REENTRENAMIENTO_MIN : (curso?.nivelIntensidadMinima ?? 1)
 
-function StepPersona({ persona, onSelect }) {
+function CertificadosVigentes({ vigentes }) {
+  if (!vigentes.length) return null
+  return (
+    <Alert
+      tone="warning"
+      title={
+        vigentes.length === 1
+          ? 'Esta persona ya tiene un certificado vigente'
+          : `Esta persona ya tiene ${vigentes.length} certificados vigentes`
+      }
+    >
+      <ul className="mt-1 flex flex-col gap-1 text-sm text-ink">
+        {vigentes.map((c) => (
+          <li key={c.id}>
+            <Link to={`/admin/certificados/${c.id}`} target="_blank" className="font-semibold underline-offset-2 hover:underline">
+              {c.curso}
+            </Link>{' '}
+            · <span className="font-mono">{c.numeroCertificado}</span> · expedido el {formatDate(c.fechaExpedicion)}, vence el{' '}
+            {formatDate(c.fechaVencimiento)}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-sm">Verifique que no se trate de la misma capacitación antes de emitir otro.</p>
+    </Alert>
+  )
+}
+
+function StepPersona({ persona, onSelect, vigentes }) {
   const [q, setQ] = useState('')
   const [term, setTerm] = useState('')
   const { data, loading, error } = useApi(
@@ -54,6 +81,7 @@ function StepPersona({ persona, onSelect }) {
           {fullName(persona)} · {persona.tipoDocumento} {persona.numeroDocumento}
         </Alert>
       )}
+      <CertificadosVigentes vigentes={vigentes} />
 
       {loading && term && <Spinner />}
       {error && <ErrorState error={error} />}
@@ -90,31 +118,40 @@ function StepPersona({ persona, onSelect }) {
   )
 }
 
-function StepCurso({ cursoId, onSelect }) {
+function StepCurso({ cursoId, onSelect, vigentes }) {
   const { data, loading, error } = useApi((signal) => api.get('/cursos', { activos: 1 }, { signal }))
   if (loading) return <Spinner />
   if (error) return <ErrorState error={error} />
   return (
     <fieldset className="grid gap-3 md:grid-cols-2">
       <legend className="sr-only">Seleccione el curso</legend>
-      {data.items.map((c) => (
-        <label
-          key={c.id}
-          className={`flex cursor-pointer gap-3 rounded-[var(--radius-card)] border p-4 transition-colors ${
-            cursoId === c.id ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-line hover:border-primary/50'
-          }`}
-        >
-          <input type="radio" name="curso" className="mt-1 accent-primary" checked={cursoId === c.id} onChange={() => onSelect(c)} />
-          <span>
-            <span className="block font-semibold text-ink">{tituloFormacion(c)}</span>
-            <span className="block text-sm text-muted">{c.nombre}</span>
-            <span className="mt-2 inline-flex flex-wrap gap-2 text-xs">
-              <span className="rounded-full bg-surface px-2 py-0.5 font-medium">{c.tipoActividad}</span>
-              <span className="rounded-full bg-accent-soft px-2 py-0.5 font-medium text-warning">{c.intensidadHoraria} horas</span>
+      {data.items.map((c) => {
+        const vigente = vigentes.find((v) => Number(v.cursoId) === Number(c.id))
+        return (
+          <label
+            key={c.id}
+            className={`flex cursor-pointer gap-3 rounded-[var(--radius-card)] border p-4 transition-colors ${
+              cursoId === c.id ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-line hover:border-primary/50'
+            }`}
+          >
+            <input type="radio" name="curso" className="mt-1 accent-primary" checked={cursoId === c.id} onChange={() => onSelect(c)} />
+            <span>
+              <span className="block font-semibold text-ink">{tituloFormacion(c)}</span>
+              <span className="block text-sm text-muted">{c.nombre}</span>
+              <span className="mt-2 inline-flex flex-wrap gap-2 text-xs">
+                <span className="rounded-full bg-surface px-2 py-0.5 font-medium">{c.tipoActividad}</span>
+                <span className="rounded-full bg-accent-soft px-2 py-0.5 font-medium text-warning">{c.intensidadHoraria} horas</span>
+                {vigente && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-warning-soft px-2 py-0.5 font-semibold text-warning">
+                    <TriangleAlert className="size-3" aria-hidden="true" />
+                    Ya tiene uno vigente hasta {formatDate(vigente.fechaVencimiento)}
+                  </span>
+                )}
+              </span>
             </span>
-          </span>
-        </label>
-      ))}
+          </label>
+        )
+      })}
     </fieldset>
   )
 }
@@ -212,6 +249,7 @@ export default function EmitirCertificadoPage() {
   const [submitError, setSubmitError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [emitido, setEmitido] = useState(null)
+  const [confirmaDuplicado, setConfirmaDuplicado] = useState(false)
 
   const reset = () => {
     setStep(0)
@@ -221,6 +259,7 @@ export default function EmitirCertificadoPage() {
     setErrors({})
     setSubmitError('')
     setEmitido(null)
+    setConfirmaDuplicado(false)
   }
 
   useApi(async (signal) => {
@@ -230,8 +269,21 @@ export default function EmitirCertificadoPage() {
     return p
   }, [preselectedId])
 
+  const historial = useApi(
+    (signal) => (persona ? api.get(`/personas/${persona.id}`, undefined, { signal }) : Promise.resolve(null)),
+    [persona?.id],
+  )
+  const vigentes = (historial.data?.certificados ?? []).filter((c) => c.estado === 'VIGENTE')
+  const duplicado = curso ? vigentes.find((c) => Number(c.cursoId) === Number(curso.id)) : null
+
+  const selectPersona = (p) => {
+    setPersona(p)
+    setConfirmaDuplicado(false)
+  }
+
   const selectCurso = (c) => {
     setCurso(c)
+    setConfirmaDuplicado(false)
     setFechas((f) => ({ ...f, intensidadHoraria: String(c.intensidadHoraria) }))
   }
 
@@ -263,6 +315,7 @@ export default function EmitirCertificadoPage() {
         fechaVencimiento: fechas.fechaVencimiento,
         intensidadHoraria: Number(fechas.intensidadHoraria),
         numeroCertificado: fechas.numeroCertificado.trim() || undefined,
+        confirmarDuplicado: confirmaDuplicado,
       })
       setEmitido(result.certificado)
     } catch (err) {
@@ -311,11 +364,28 @@ export default function EmitirCertificadoPage() {
       <PageHeader title="Emitir certificado" backTo="/admin/certificados" backLabel="Certificados" />
       <Stepper steps={STEPS} current={step} />
       <Card title={STEPS[step]}>
-        {step === 0 && <StepPersona persona={persona} onSelect={setPersona} />}
-        {step === 1 && <StepCurso cursoId={curso?.id} onSelect={selectCurso} />}
+        {step === 0 && <StepPersona persona={persona} onSelect={selectPersona} vigentes={vigentes} />}
+        {step === 1 && <StepCurso cursoId={curso?.id} onSelect={selectCurso} vigentes={vigentes} />}
         {step === 2 && <StepFechas values={fechas} curso={curso} onChange={setFechas} errors={errors} />}
         {step === 3 && (
           <div className="flex flex-col gap-4">
+            {duplicado && (
+              <Alert tone="warning" title="Posible certificado duplicado">
+                <p className="text-sm text-ink">
+                  {fullName(persona)} ya tiene un certificado vigente de este curso:{' '}
+                  <Link to={`/admin/certificados/${duplicado.id}`} target="_blank" className="font-mono font-semibold hover:underline">
+                    {duplicado.numeroCertificado}
+                  </Link>
+                  , expedido el {formatDate(duplicado.fechaExpedicion)} y vigente hasta el {formatDate(duplicado.fechaVencimiento)}.
+                </p>
+                <Checkbox
+                  className="mt-1 text-ink"
+                  label="Confirmo que se debe emitir un nuevo certificado de este curso"
+                  checked={confirmaDuplicado}
+                  onChange={(e) => setConfirmaDuplicado(e.target.checked)}
+                />
+              </Alert>
+            )}
             <Resumen persona={persona} curso={curso} fechas={fechas} />
             <p className="text-sm text-muted">
               Al emitir, el sistema generará el código único de consulta y el código QR. El titular consultará su certificado
@@ -340,7 +410,7 @@ export default function EmitirCertificadoPage() {
               Continuar
             </Button>
           ) : (
-            <Button icon={FilePlus2} onClick={emitir} loading={submitting}>
+            <Button icon={FilePlus2} onClick={emitir} loading={submitting} disabled={Boolean(duplicado) && !confirmaDuplicado}>
               Emitir certificado
             </Button>
           )}

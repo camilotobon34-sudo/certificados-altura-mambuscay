@@ -41,6 +41,7 @@ const emitirSchema = z.object({
   fechaVencimiento: fecha('Fecha de vencimiento inválida'),
   intensidadHoraria: z.coerce.number().int().positive().optional(),
   numeroCertificado,
+  confirmarDuplicado: z.boolean().optional().default(false),
 });
 
 const actualizarSchema = z.object({

@@ -203,6 +203,22 @@ export const emitir = async (datos, usuario) => {
   const intensidad = datos.intensidadHoraria ?? curso.intensidad_horaria;
   validarIntensidadYFechas(curso, intensidad, datos);
 
+  // Evita emitir dos veces el mismo curso cuando la empresa reenvía a la persona.
+  if (!datos.confirmarDuplicado) {
+    const [vigente] = await query(
+      `SELECT c.numero_certificado AS numero, DATE_FORMAT(c.fecha_expedicion, '%d/%m/%Y') AS expedicion
+         FROM certificados c
+        WHERE c.persona_id = ? AND c.curso_id = ? AND ${estadoEfectivoSql('c')} = 'VIGENTE'
+        ORDER BY c.fecha_expedicion DESC LIMIT 1`,
+      [datos.personaId, datos.cursoId],
+    );
+    if (vigente) {
+      throw conflict(
+        `La persona ya tiene un certificado vigente de este curso (${vigente.numero}, expedido el ${vigente.expedicion}). Confirme si debe emitirse otro.`,
+      );
+    }
+  }
+
   const id = await withTransaction(async (conn) => {
     const [[{ hoy }]] = await conn.query('SELECT CURDATE() AS hoy');
     const estadoInicial = datos.fechaVencimiento < hoy ? ESTADOS.VENCIDO : ESTADOS.VIGENTE;

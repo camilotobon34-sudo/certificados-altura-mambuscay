@@ -66,7 +66,7 @@ router.get('/:id', async (req, res) => {
   if (!persona) throw notFound('Persona no encontrada');
 
   const certificados = await query(
-    `SELECT c.id, c.numero_certificado AS numeroCertificado, cu.nombre AS curso,
+    `SELECT c.id, c.numero_certificado AS numeroCertificado, c.curso_id AS cursoId, cu.nombre AS curso,
             nf.nombre AS nivel, c.fecha_expedicion AS fechaExpedicion,
             c.fecha_vencimiento AS fechaVencimiento, ${estadoEfectivoSql('c')} AS estado
        FROM certificados c
