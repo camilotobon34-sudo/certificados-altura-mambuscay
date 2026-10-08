@@ -10,6 +10,7 @@ import ConsultaCertificadoPage from './pages/public/ConsultaCertificadoPage.jsx'
 import ScanQrPage from './pages/public/ScanQrPage.jsx'
 import LoginPage from './pages/auth/LoginPage.jsx'
 import NotFoundPage from './pages/NotFoundPage.jsx'
+import RouteErrorPage from './pages/RouteErrorPage.jsx'
 
 // El panel interno y el portal del estudiante se cargan bajo demanda para que
 // la consulta pública (uso principal en campo) sea liviana.
@@ -34,65 +35,70 @@ const MiCertificadoPage = lazy(() => import('./pages/estudiante/MiCertificadoPag
 
 const router = createBrowserRouter([
   {
-    element: <PublicLayout />,
-    children: [
-      { index: true, element: <ConsultaCertificadoPage /> },
-      { path: 'escanear', element: <ScanQrPage /> },
-      { path: 'verificar', element: <Navigate to="/" replace /> },
-      // Destino de los QR (/verificar/:codigo): precarga el código; no cambiar la ruta.
-      { path: 'verificar/:codigo', element: <ConsultaCertificadoPage /> },
-    ],
-  },
-  { path: 'login', element: <LoginPage /> },
-  {
-    path: 'admin',
-    element: <RequireRole roles={INTERNAL_ROLES} />,
+    errorElement: <RouteErrorPage />,
     children: [
       {
-        element: <InternalLayout />,
+        element: <PublicLayout />,
         children: [
-          { index: true, element: <DashboardPage /> },
-          { path: 'certificados', element: <CertificadosPage /> },
-          { path: 'certificados/nuevo', element: <EmitirCertificadoPage /> },
-          { path: 'certificados/:id', element: <CertificadoDetallePage /> },
-          { path: 'personas', element: <PersonasPage /> },
-          { path: 'personas/nueva', element: <PersonaFormPage /> },
-          { path: 'personas/:id', element: <PersonaDetallePage /> },
-          { path: 'personas/:id/editar', element: <PersonaFormPage /> },
-          { path: 'cursos', element: <CursosPage /> },
-          { path: 'cursos/nuevo', element: <CursoFormPage /> },
-          { path: 'cursos/:id/editar', element: <CursoFormPage /> },
-          { path: 'cuenta', element: <CuentaPage /> },
+          { index: true, element: <ConsultaCertificadoPage /> },
+          { path: 'escanear', element: <ScanQrPage /> },
+          { path: 'verificar', element: <Navigate to="/" replace /> },
+          // Destino de los QR (/verificar/:codigo): precarga el código; no cambiar la ruta.
+          { path: 'verificar/:codigo', element: <ConsultaCertificadoPage /> },
+        ],
+      },
+      { path: 'login', element: <LoginPage /> },
+      {
+        path: 'admin',
+        element: <RequireRole roles={INTERNAL_ROLES} />,
+        children: [
           {
-            element: <RequireRole roles={[ROLES.ADMIN]} />,
+            element: <InternalLayout />,
             children: [
-              { path: 'certificados/:id/editar', element: <EditarCertificadoPage /> },
-              { path: 'niveles', element: <NivelesPage /> },
-              { path: 'usuarios', element: <UsuariosPage /> },
-              { path: 'usuarios/nuevo', element: <UsuarioFormPage /> },
-              { path: 'usuarios/:id/editar', element: <UsuarioFormPage /> },
-              { path: 'configuracion', element: <ConfiguracionPage /> },
-              { path: 'reporte-diario', element: <ReporteDiarioPage /> },
+              { index: true, element: <DashboardPage /> },
+              { path: 'certificados', element: <CertificadosPage /> },
+              { path: 'certificados/nuevo', element: <EmitirCertificadoPage /> },
+              { path: 'certificados/:id', element: <CertificadoDetallePage /> },
+              { path: 'personas', element: <PersonasPage /> },
+              { path: 'personas/nueva', element: <PersonaFormPage /> },
+              { path: 'personas/:id', element: <PersonaDetallePage /> },
+              { path: 'personas/:id/editar', element: <PersonaFormPage /> },
+              { path: 'cursos', element: <CursosPage /> },
+              { path: 'cursos/nuevo', element: <CursoFormPage /> },
+              { path: 'cursos/:id/editar', element: <CursoFormPage /> },
+              { path: 'cuenta', element: <CuentaPage /> },
+              {
+                element: <RequireRole roles={[ROLES.ADMIN]} />,
+                children: [
+                  { path: 'certificados/:id/editar', element: <EditarCertificadoPage /> },
+                  { path: 'niveles', element: <NivelesPage /> },
+                  { path: 'usuarios', element: <UsuariosPage /> },
+                  { path: 'usuarios/nuevo', element: <UsuarioFormPage /> },
+                  { path: 'usuarios/:id/editar', element: <UsuarioFormPage /> },
+                  { path: 'configuracion', element: <ConfiguracionPage /> },
+                  { path: 'reporte-diario', element: <ReporteDiarioPage /> },
+                ],
+              },
             ],
           },
         ],
       },
-    ],
-  },
-  {
-    path: 'mis-certificados',
-    element: <RequireRole roles={[ROLES.ESTUDIANTE]} />,
-    children: [
       {
-        element: <StudentLayout />,
+        path: 'mis-certificados',
+        element: <RequireRole roles={[ROLES.ESTUDIANTE]} />,
         children: [
-          { index: true, element: <MisCertificadosPage /> },
-          { path: ':id', element: <MiCertificadoPage /> },
+          {
+            element: <StudentLayout />,
+            children: [
+              { index: true, element: <MisCertificadosPage /> },
+              { path: ':id', element: <MiCertificadoPage /> },
+            ],
+          },
         ],
       },
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
-  { path: '*', element: <NotFoundPage /> },
 ])
 
 export default function App() {
