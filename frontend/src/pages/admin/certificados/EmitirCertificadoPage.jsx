@@ -6,12 +6,13 @@ import { Alert } from '../../../components/ui/Alert.jsx'
 import { Button } from '../../../components/ui/Button.jsx'
 import { Card } from '../../../components/ui/Card.jsx'
 import { EmptyState, ErrorState, Spinner } from '../../../components/ui/Feedback.jsx'
-import { Checkbox, Input } from '../../../components/ui/Field.jsx'
+import { Input } from '../../../components/ui/Field.jsx'
+import { Modal } from '../../../components/ui/Modal.jsx'
 import { PageHeader } from '../../../components/ui/PageHeader.jsx'
 import { Stepper } from '../../../components/ui/Stepper.jsx'
 import { useApi } from '../../../hooks/useApi.js'
 import { api } from '../../../lib/api.js'
-import { addMonthsIso, formatDate, fullName, tituloFormacion, todayIso } from '../../../lib/format.js'
+import { addMonthsIso, formatDate, formatLongDate, fullName, tituloFormacion, todayIso } from '../../../lib/format.js'
 import { verificationUrl } from '../../../lib/verification.js'
 
 const STEPS = ['Persona', 'Curso y nivel', 'Fechas e intensidad', 'Revisión']
@@ -45,6 +46,44 @@ function CertificadosVigentes({ vigentes }) {
       </ul>
       <p className="mt-2 text-sm">Verifique que no se trate de la misma capacitación antes de emitir otro.</p>
     </Alert>
+  )
+}
+
+function AlertaDuplicado({ persona, certificado, onCancelar, onContinuar, onCerrar }) {
+  return (
+    <Modal
+      open
+      title="Esta persona ya tiene este certificado"
+      onClose={onCerrar}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onCancelar}>
+            Cancelar certificado
+          </Button>
+          <Button icon={FilePlus2} onClick={onContinuar}>
+            Sacar de todos modos
+          </Button>
+        </>
+      }
+    >
+      <div className="flex gap-3">
+        <TriangleAlert className="mt-0.5 size-6 shrink-0 text-warning" aria-hidden="true" />
+        <div className="flex flex-col gap-2 text-ink">
+          <p>
+            <strong>{fullName(persona)}</strong> sacó un certificado de <strong>{certificado.curso}</strong> el{' '}
+            <strong>{formatLongDate(certificado.fechaExpedicion)}</strong>.
+          </p>
+          <p className="text-sm text-muted">
+            Número{' '}
+            <Link to={`/admin/certificados/${certificado.id}`} target="_blank" className="font-mono font-semibold text-ink hover:underline">
+              {certificado.numeroCertificado}
+            </Link>{' '}
+            · vigente hasta el {formatLongDate(certificado.fechaVencimiento)}.
+          </p>
+          <p className="text-sm">¿Desea sacar un nuevo certificado de todos modos?</p>
+        </div>
+      </div>
+    </Modal>
   )
 }
 
@@ -250,8 +289,10 @@ export default function EmitirCertificadoPage() {
   const [submitting, setSubmitting] = useState(false)
   const [emitido, setEmitido] = useState(null)
   const [confirmaDuplicado, setConfirmaDuplicado] = useState(false)
+  const [alertaDuplicado, setAlertaDuplicado] = useState(false)
 
   const reset = () => {
+    setAlertaDuplicado(false)
     setStep(0)
     setPersona(null)
     setCurso(null)
@@ -274,7 +315,8 @@ export default function EmitirCertificadoPage() {
     [persona?.id],
   )
   const vigentes = (historial.data?.certificados ?? []).filter((c) => c.estado === 'VIGENTE')
-  const duplicado = curso ? vigentes.find((c) => Number(c.cursoId) === Number(curso.id)) : null
+  const vigenteDe = (c) => (c ? vigentes.find((v) => Number(v.cursoId) === Number(c.id)) : null)
+  const duplicado = vigenteDe(curso)
 
   const selectPersona = (p) => {
     setPersona(p)
@@ -284,7 +326,19 @@ export default function EmitirCertificadoPage() {
   const selectCurso = (c) => {
     setCurso(c)
     setConfirmaDuplicado(false)
+    setAlertaDuplicado(Boolean(vigenteDe(c)))
     setFechas((f) => ({ ...f, intensidadHoraria: String(c.intensidadHoraria) }))
+  }
+
+  const sacarDeTodosModos = () => {
+    setConfirmaDuplicado(true)
+    setAlertaDuplicado(false)
+  }
+
+  // Cerrar la alerta sin decidir deja el curso sin seleccionar.
+  const cerrarAlerta = () => {
+    setAlertaDuplicado(false)
+    setCurso(null)
   }
 
   const validateFechas = () => {
@@ -300,6 +354,10 @@ export default function EmitirCertificadoPage() {
   const canContinue = [Boolean(persona), Boolean(curso), true, true][step]
 
   const next = () => {
+    if (step === 1 && duplicado && !confirmaDuplicado) {
+      setAlertaDuplicado(true)
+      return
+    }
     if (step === 2 && !validateFechas()) return
     setStep((s) => Math.min(s + 1, STEPS.length - 1))
   }
@@ -363,6 +421,15 @@ export default function EmitirCertificadoPage() {
     <>
       <PageHeader title="Emitir certificado" backTo="/admin/certificados" backLabel="Certificados" />
       <Stepper steps={STEPS} current={step} />
+      {alertaDuplicado && duplicado && (
+        <AlertaDuplicado
+          persona={persona}
+          certificado={duplicado}
+          onCancelar={reset}
+          onContinuar={sacarDeTodosModos}
+          onCerrar={cerrarAlerta}
+        />
+      )}
       <Card title={STEPS[step]}>
         {step === 0 && <StepPersona persona={persona} onSelect={selectPersona} vigentes={vigentes} />}
         {step === 1 && <StepCurso cursoId={curso?.id} onSelect={selectCurso} vigentes={vigentes} />}
@@ -370,20 +437,12 @@ export default function EmitirCertificadoPage() {
         {step === 3 && (
           <div className="flex flex-col gap-4">
             {duplicado && (
-              <Alert tone="warning" title="Posible certificado duplicado">
-                <p className="text-sm text-ink">
-                  {fullName(persona)} ya tiene un certificado vigente de este curso:{' '}
-                  <Link to={`/admin/certificados/${duplicado.id}`} target="_blank" className="font-mono font-semibold hover:underline">
-                    {duplicado.numeroCertificado}
-                  </Link>
-                  , expedido el {formatDate(duplicado.fechaExpedicion)} y vigente hasta el {formatDate(duplicado.fechaVencimiento)}.
-                </p>
-                <Checkbox
-                  className="mt-1 text-ink"
-                  label="Confirmo que se debe emitir un nuevo certificado de este curso"
-                  checked={confirmaDuplicado}
-                  onChange={(e) => setConfirmaDuplicado(e.target.checked)}
-                />
+              <Alert tone="warning" title="Se sacará de todos modos">
+                {fullName(persona)} ya tiene el certificado{' '}
+                <Link to={`/admin/certificados/${duplicado.id}`} target="_blank" className="font-mono font-semibold hover:underline">
+                  {duplicado.numeroCertificado}
+                </Link>{' '}
+                de este curso, sacado el {formatLongDate(duplicado.fechaExpedicion)}.
               </Alert>
             )}
             <Resumen persona={persona} curso={curso} fechas={fechas} />

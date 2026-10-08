@@ -7,6 +7,16 @@ export const formatDate = (value) => {
   return d && m && y ? `${d}/${m}/${y}` : String(value)
 }
 
+// 'YYYY-MM-DD' → '30 de septiembre de 2026'
+export const formatLongDate = (value) => {
+  if (!value) return '—'
+  const [y, m, d] = String(value).slice(0, 10).split('-').map(Number)
+  if (!y || !m || !d) return String(value)
+  return new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
+    new Date(Date.UTC(y, m - 1, d)),
+  )
+}
+
 export const formatDateTime = (value) => {
   if (!value) return '—'
   // 'YYYY-MM-DD HH:mm:ss' del servidor ya está en hora de Colombia.
