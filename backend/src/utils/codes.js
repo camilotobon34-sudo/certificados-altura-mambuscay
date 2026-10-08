@@ -18,9 +18,13 @@ const PREFIJOS_NIVEL = {
   ENTRENADOR: 'EN',
 };
 
+const PREFIJOS_ACTIVIDAD = {
+  REENTRENAMIENTO: 'RE',
+  OTRAS_TAREAS_ALTO_RIESGO: 'AR',
+};
+
 export const formatearNumeroCertificado = ({ id, codigoNivel, codigoActividad, anio }) => {
-  const prefijo =
-    codigoActividad === 'REENTRENAMIENTO' ? 'RE' : (PREFIJOS_NIVEL[codigoNivel] ?? 'GN');
+  const prefijo = PREFIJOS_ACTIVIDAD[codigoActividad] ?? PREFIJOS_NIVEL[codigoNivel] ?? 'GN';
   return `MAM-${prefijo}-${anio}-${String(id).padStart(6, '0')}`;
 };
 

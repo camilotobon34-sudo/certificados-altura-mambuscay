@@ -10,6 +10,7 @@ import { PageHeader } from '../../../components/ui/PageHeader.jsx'
 import { useApi } from '../../../hooks/useApi.js'
 import { useCatalogos } from '../../../hooks/useCatalogos.js'
 import { api } from '../../../lib/api.js'
+import { plantillaDeCurso } from '../../../lib/plantillas.js'
 
 const EMPTY = { nombre: '', nivelFormacionId: '', tipoActividadId: '', intensidadHoraria: '', descripcion: '', activo: true }
 const REENTRENAMIENTO_MIN = 8
@@ -44,7 +45,9 @@ export default function CursoFormPage() {
   const tipo = tiposActividad.find((t) => String(t.id) === form.tipoActividadId)
   const nivel = niveles.find((n) => String(n.id) === form.nivelFormacionId)
   const esReentrenamiento = tipo?.codigo === 'REENTRENAMIENTO'
-  const minimo = esReentrenamiento ? REENTRENAMIENTO_MIN : nivel?.intensidad_minima_horas
+  const esOtraTarea = tipo?.codigo === 'OTRAS_TAREAS_ALTO_RIESGO'
+  const minimo = esReentrenamiento ? REENTRENAMIENTO_MIN : esOtraTarea ? undefined : nivel?.intensidad_minima_horas
+  const plantilla = plantillaDeCurso({ tipoActividadCodigo: tipo?.codigo, nivelCodigo: nivel?.codigo })
 
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.type === 'checkbox' ? e.target.checked : e.target.value })
   const fieldErrors = error?.fieldErrors ?? {}
@@ -56,7 +59,7 @@ export default function CursoFormPage() {
     try {
       const body = {
         ...form,
-        nivelFormacionId: form.nivelFormacionId ? Number(form.nivelFormacionId) : null,
+        nivelFormacionId: form.nivelFormacionId && !esOtraTarea ? Number(form.nivelFormacionId) : null,
         tipoActividadId: Number(form.tipoActividadId),
         intensidadHoraria: Number(form.intensidadHoraria),
       }
@@ -72,6 +75,7 @@ export default function CursoFormPage() {
   return (
     <>
       <PageHeader title={id ? 'Editar curso' : 'Nuevo curso'} backTo="/admin/cursos" backLabel="Cursos" />
+      <div className="grid items-start gap-6 lg:grid-cols-[1fr_280px]">
       <Card>
         <form onSubmit={submit} className="grid gap-5 md:grid-cols-2" noValidate>
           {error && !Object.keys(fieldErrors).length && <Alert tone="error" title={error.message} className="md:col-span-2" />}
@@ -87,15 +91,21 @@ export default function CursoFormPage() {
             error={fieldErrors.tipoActividadId}
             options={tiposActividad.map((t) => ({ value: String(t.id), label: t.nombre }))}
           />
-          <Select
-            label="Nivel de formación (Res. 4272 de 2021)"
-            required={!esReentrenamiento}
-            placeholder={esReentrenamiento ? 'Opcional' : 'Seleccione'}
-            value={form.nivelFormacionId}
-            onChange={set('nivelFormacionId')}
-            error={fieldErrors.nivelFormacionId}
-            options={niveles.filter((n) => n.activo).map((n) => ({ value: String(n.id), label: `${n.nombre} (mín. ${n.intensidad_minima_horas} h)` }))}
-          />
+          {esOtraTarea ? (
+            <Alert tone="info" title="Sin nivel de trabajo en alturas">
+              Las otras tareas de alto riesgo no usan los niveles de la Resolución 4272 de 2021.
+            </Alert>
+          ) : (
+            <Select
+              label="Nivel de formación (Res. 4272 de 2021)"
+              required={!esReentrenamiento}
+              placeholder={esReentrenamiento ? 'Opcional' : 'Seleccione'}
+              value={form.nivelFormacionId}
+              onChange={set('nivelFormacionId')}
+              error={fieldErrors.nivelFormacionId}
+              options={niveles.filter((n) => n.activo).map((n) => ({ value: String(n.id), label: `${n.nombre} (mín. ${n.intensidad_minima_horas} h)` }))}
+            />
+          )}
           <Input
             label="Intensidad horaria"
             type="number"
@@ -120,6 +130,33 @@ export default function CursoFormPage() {
           </div>
         </form>
       </Card>
+      <Card title="Plantilla del certificado" className="lg:sticky lg:top-24">
+        {plantilla ? (
+          <div className="flex flex-col gap-3">
+            <img
+              src={plantilla.fondo}
+              alt={`Plantilla ${plantilla.nombre}`}
+              className="w-full rounded-[var(--radius-control)] border border-line shadow-[var(--shadow-elevation-1)]"
+            />
+            <p className="font-semibold text-ink">{plantilla.nombre}</p>
+            <p className="text-sm text-muted">
+              Código de certificación: <span className="font-mono">{plantilla.prefijoCodigo}…</span>
+            </p>
+            <p className="text-sm text-muted">Entrenadores: {plantilla.entrenadores.join(', ')}</p>
+            {existing.data && (
+              <p className="text-sm text-muted">
+                {existing.data.certificadosEmitidos} certificado(s) emitido(s) con este curso.
+              </p>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-muted">
+            Seleccione el tipo de actividad y el nivel para ver la plantilla que corresponde. Los niveles sin plantilla
+            oficial (Jefe de área, Entrenador) no tienen diseño asignado.
+          </p>
+        )}
+      </Card>
+      </div>
     </>
   )
 }

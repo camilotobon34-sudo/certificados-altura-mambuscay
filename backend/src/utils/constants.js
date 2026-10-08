@@ -14,6 +14,7 @@ export const ESTADOS = Object.freeze({
 export const TIPOS_ACTIVIDAD = Object.freeze({
   FORMACION_INICIAL: 'FORMACION_INICIAL',
   REENTRENAMIENTO: 'REENTRENAMIENTO',
+  OTRAS_TAREAS_ALTO_RIESGO: 'OTRAS_TAREAS_ALTO_RIESGO',
 });
 
 // Res. 4272 de 2021, Art. 27: el reentrenamiento dura mínimo 8 horas.
