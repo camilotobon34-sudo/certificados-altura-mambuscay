@@ -100,8 +100,36 @@ const send = async (path, { method = 'GET', body, params, signal } = {}) => {
   return data
 }
 
+// Descarga un archivo autenticado (p. ej. Excel) y lo guarda con el nombre indicado.
+const download = async (path, params, filename) => {
+  const token = tokenStorage.get()
+  let response
+  try {
+    response = await fetch(buildUrl(path, params), {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+  } catch {
+    throw new ApiError(0, 'No hay conexión con el servidor. Revise su conexión a internet.')
+  }
+  if (!response.ok) {
+    const data = await response.json().catch(() => null)
+    if (response.status === 401 && token) {
+      tokenStorage.clear()
+      window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT))
+    }
+    throw new ApiError(response.status, data?.error ?? 'No fue posible descargar el archivo', data?.details)
+  }
+  const url = URL.createObjectURL(await response.blob())
+  const link = Object.assign(document.createElement('a'), { href: url, download: filename })
+  document.body.append(link)
+  link.click()
+  link.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
 export const api = {
   get: (path, params, options) => request(path, { ...options, params }),
   post: (path, body) => request(path, { method: 'POST', body }),
   put: (path, body) => request(path, { method: 'PUT', body }),
+  download,
 }

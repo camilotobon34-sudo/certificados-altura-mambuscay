@@ -16,6 +16,7 @@ import certificadosRoutes from './modules/certificados/certificados.routes.js';
 import usuariosRoutes from './modules/usuarios/usuarios.routes.js';
 import estudianteRoutes from './modules/estudiante/estudiante.routes.js';
 import configuracionRoutes from './modules/configuracion/configuracion.routes.js';
+import reportesRoutes from './modules/reportes/reportes.routes.js';
 
 z.config(z.locales.es());
 
@@ -48,6 +49,7 @@ export const createApp = () => {
   app.use('/api/certificados', ...internos, certificadosRoutes);
   app.use('/api/configuracion', ...internos, configuracionRoutes);
   app.use('/api/usuarios', authenticate, authorize(ROLES.ADMIN), usuariosRoutes);
+  app.use('/api/reportes', authenticate, authorize(ROLES.ADMIN), reportesRoutes);
   app.use('/api/estudiante', authenticate, authorize(ROLES.ESTUDIANTE), estudianteRoutes);
 
   app.use(notFoundHandler);

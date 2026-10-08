@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import { FilePlus2, Search, UserPlus } from 'lucide-react'
+import { FilePlus2, FileSpreadsheet, Search, UserPlus } from 'lucide-react'
 import { LogoSymbol } from '../../components/brand/Logo.jsx'
 import { Button } from '../../components/ui/Button.jsx'
 import { Card } from '../../components/ui/Card.jsx'
@@ -11,7 +11,7 @@ import { useAuth } from '../../context/AuthContext.jsx'
 import { useApi } from '../../hooks/useApi.js'
 import { api } from '../../lib/api.js'
 import { NOMBRE_SISTEMA } from '../../lib/brand.js'
-import { ESTADO_KEYS, ESTADOS } from '../../lib/constants.js'
+import { ESTADO_KEYS, ESTADOS, ROLES } from '../../lib/constants.js'
 import { formatDate, tituloFormacion } from '../../lib/format.js'
 
 const columns = [
@@ -69,6 +69,17 @@ export default function DashboardPage() {
             >
               Registrar persona
             </Button>
+            {usuario.rol === ROLES.ADMIN && (
+              <Button
+                to="/admin/reporte-diario"
+                variant="secondary"
+                size="lg"
+                icon={FileSpreadsheet}
+                className="border-white/60 text-white hover:bg-white/10"
+              >
+                Reporte del día
+              </Button>
+            )}
           </div>
         </div>
         <form onSubmit={buscar} className="relative border-t border-white/10 bg-primary-dark/60 p-4 sm:px-7" role="search">

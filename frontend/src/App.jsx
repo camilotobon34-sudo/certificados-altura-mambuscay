@@ -28,6 +28,7 @@ const NivelesPage = lazy(() => import('./pages/admin/NivelesPage.jsx'))
 const UsuariosPage = lazy(() => import('./pages/admin/usuarios/UsuariosPage.jsx'))
 const UsuarioFormPage = lazy(() => import('./pages/admin/usuarios/UsuarioFormPage.jsx'))
 const ConfiguracionPage = lazy(() => import('./pages/admin/ConfiguracionPage.jsx'))
+const ReporteDiarioPage = lazy(() => import('./pages/admin/ReporteDiarioPage.jsx'))
 const MisCertificadosPage = lazy(() => import('./pages/estudiante/MisCertificadosPage.jsx'))
 const MiCertificadoPage = lazy(() => import('./pages/estudiante/MiCertificadoPage.jsx'))
 
@@ -71,6 +72,7 @@ const router = createBrowserRouter([
               { path: 'usuarios/nuevo', element: <UsuarioFormPage /> },
               { path: 'usuarios/:id/editar', element: <UsuarioFormPage /> },
               { path: 'configuracion', element: <ConfiguracionPage /> },
+              { path: 'reporte-diario', element: <ReporteDiarioPage /> },
             ],
           },
         ],

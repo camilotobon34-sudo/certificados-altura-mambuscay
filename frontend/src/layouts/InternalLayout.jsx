@@ -2,6 +2,7 @@ import { Suspense, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import {
   BookOpen,
+  FileSpreadsheet,
   FileText,
   Layers,
   LayoutDashboard,
@@ -25,6 +26,7 @@ const NAV_ITEMS = [
   { to: '/admin/certificados', label: 'Certificados', icon: FileText },
   { to: '/admin/personas', label: 'Personas certificadas', icon: UserSquare },
   { to: '/admin/cursos', label: 'Cursos', icon: BookOpen },
+  { to: '/admin/reporte-diario', label: 'Reporte diario', icon: FileSpreadsheet, roles: [ROLES.ADMIN] },
   { to: '/admin/niveles', label: 'Niveles de formación', icon: Layers, roles: [ROLES.ADMIN] },
   { to: '/admin/usuarios', label: 'Usuarios', icon: Users, roles: [ROLES.ADMIN] },
   { to: '/admin/configuracion', label: 'Configuración', icon: Settings, roles: [ROLES.ADMIN] },
