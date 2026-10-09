@@ -25,11 +25,38 @@ export const PLANTILLAS = {
     prefijoCodigo: 'AMTENC',
     entrenadores: ['Alexander Mambuscay T'],
   },
+  ARMADO_ANDAMIOS: {
+    nombre: 'Armado de andamios',
+    fondo: '/plantillas/coordinador.jpg',
+    prefijoCodigo: 'ANDA',
+    entrenadores: ['Alexander Mambuscay T'],
+  },
+  RESCATE: {
+    nombre: 'Rescate en alturas',
+    fondo: '/plantillas/coordinador.jpg',
+    prefijoCodigo: 'RESCT',
+    entrenadores: ['Alexander Mambuscay T'],
+  },
+  BRIGADA: {
+    nombre: 'Brigada de primeros auxilios',
+    fondo: '/plantillas/trabajo-en-caliente.jpg',
+    prefijoCodigo: 'AMBRIGEPAUX',
+    entrenadores: ['Alexander Mambuscay T'],
+  },
 }
 
-export const plantillaDeCurso = ({ tipoActividadCodigo, nivelCodigo } = {}) => {
+// Los cursos de "otros cursos" comparten tipo de actividad; la plantilla se distingue por el nombre.
+const PLANTILLAS_POR_NOMBRE = [
+  [/andamio/i, PLANTILLAS.ARMADO_ANDAMIOS],
+  [/rescate/i, PLANTILLAS.RESCATE],
+  [/brigada|primeros auxilios/i, PLANTILLAS.BRIGADA],
+]
+
+export const plantillaDeCurso = ({ tipoActividadCodigo, nivelCodigo, nombre = '' } = {}) => {
   if (tipoActividadCodigo === 'REENTRENAMIENTO') return PLANTILLAS.REENTRENAMIENTO
-  if (tipoActividadCodigo === 'OTRAS_TAREAS_ALTO_RIESGO') return PLANTILLAS.TRABAJO_EN_CALIENTE
+  if (tipoActividadCodigo === 'OTRAS_TAREAS_ALTO_RIESGO') {
+    return PLANTILLAS_POR_NOMBRE.find(([patron]) => patron.test(nombre))?.[1] ?? PLANTILLAS.TRABAJO_EN_CALIENTE
+  }
   return PLANTILLAS[nivelCodigo] ?? null
 }
 
@@ -46,7 +73,7 @@ export const GRUPOS_CURSO = [
   },
   {
     codigo: 'OTRAS_TAREAS_ALTO_RIESGO',
-    titulo: 'Otras tareas de alto riesgo',
-    descripcion: 'Formación distinta al trabajo en alturas, como el trabajo en caliente.',
+    titulo: 'Otros cursos',
+    descripcion: 'Trabajo en caliente, armado de andamios, rescate en alturas y brigadas de emergencia.',
   },
 ]

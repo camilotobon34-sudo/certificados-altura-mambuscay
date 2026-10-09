@@ -47,7 +47,7 @@ export default function CursoFormPage() {
   const esReentrenamiento = tipo?.codigo === 'REENTRENAMIENTO'
   const esOtraTarea = tipo?.codigo === 'OTRAS_TAREAS_ALTO_RIESGO'
   const minimo = esReentrenamiento ? REENTRENAMIENTO_MIN : esOtraTarea ? undefined : nivel?.intensidad_minima_horas
-  const plantilla = plantillaDeCurso({ tipoActividadCodigo: tipo?.codigo, nivelCodigo: nivel?.codigo })
+  const plantilla = plantillaDeCurso({ tipoActividadCodigo: tipo?.codigo, nivelCodigo: nivel?.codigo, nombre: form.nombre })
 
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.type === 'checkbox' ? e.target.checked : e.target.value })
   const fieldErrors = error?.fieldErrors ?? {}
