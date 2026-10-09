@@ -161,8 +161,11 @@ const registrarHistorial = (conn, { certificadoId, usuarioId, anterior, nuevo, o
     [certificadoId, usuarioId, anterior, nuevo, observacion ?? null],
   );
 
-const cargarCurso = async (cursoId, { permitirInactivo = false } = {}) => {
-  const [curso] = await query(
+// Dentro de una transacción se debe pasar su conexión: en Vercel el pool tiene una sola y
+// pedir otra deja la petición esperando para siempre.
+const cargarCurso = async (cursoId, { permitirInactivo = false, conn } = {}) => {
+  const consultar = conn ? async (sql, params) => (await conn.query(sql, params))[0] : query;
+  const [curso] = await consultar(
     `SELECT cu.id, cu.activo, cu.intensidad_horaria, cu.prefijo_codigo, nf.codigo AS nivelCodigo,
             nf.nombre AS nivelNombre, nf.intensidad_minima_horas, ta.codigo AS actividadCodigo
        FROM cursos cu
@@ -353,7 +356,7 @@ export const actualizar = async (id, datos, usuario) => {
     if (!actual) throw notFound('Certificado no encontrado');
     if (actual.estado === ESTADOS.ANULADO) throw conflict('Un certificado anulado no puede editarse');
 
-    const curso = await cargarCurso(datos.cursoId, { permitirInactivo: datos.cursoId === actual.curso_id });
+    const curso = await cargarCurso(datos.cursoId, { permitirInactivo: datos.cursoId === actual.curso_id, conn });
     validarIntensidadYFechas(curso, datos.intensidadHoraria, datos);
     validarFechasFormacion(datos);
 
