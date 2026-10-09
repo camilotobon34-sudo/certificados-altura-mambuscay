@@ -16,6 +16,8 @@ import {
   datosPlantillaDe,
   fechasFormacionSugeridas,
   datosPlantillaParaApi,
+  empresaInvalida,
+  empresaPorDefecto,
   entrenadorPorDefecto,
   validarDatosPlantilla,
 } from '../../../lib/datos-plantilla.js'
@@ -33,9 +35,11 @@ function Formulario({ certificado: c, cursos }) {
   })
   const [plantilla, setPlantilla] = useState(() => {
     const v = datosPlantillaDe(c)
+    const entrenador = v.entrenador || entrenadorPorDefecto(c)
     return {
       ...v,
-      entrenador: v.entrenador || entrenadorPorDefecto(c),
+      entrenador,
+      ...(empresaInvalida(v.empresa) ? empresaPorDefecto(c, entrenador) : {}),
       arl: v.arl || ARL_POR_DEFECTO,
       ...(v.fechaInicioFormacion || v.fechaFinFormacion
         ? {}

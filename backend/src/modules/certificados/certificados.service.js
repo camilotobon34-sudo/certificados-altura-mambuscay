@@ -94,6 +94,25 @@ export const resumen = async () => {
   return { totales, proximosAVencer, ultimasEmisiones };
 };
 
+// Empresas de certificados anteriores, con los datos de su uso más reciente.
+// Altura Mambuscay es el centro de capacitación, no un empleador: se omite.
+export const empresasUsadas = async () => {
+  const filas = await query(
+    `SELECT empresa, nit_empresa AS nitEmpresa, representante_legal AS representanteLegal,
+            documento_representante AS documentoRepresentante, arl
+       FROM certificados
+      WHERE empresa IS NOT NULL AND empresa <> '' AND empresa NOT LIKE '%mambuscay%'
+      ORDER BY id DESC
+      LIMIT 2000`,
+  );
+  const vistas = new Map();
+  for (const fila of filas) {
+    const clave = fila.empresa.trim().replace(/\s+/g, ' ').toUpperCase();
+    if (!vistas.has(clave)) vistas.set(clave, fila);
+  }
+  return [...vistas.values()].sort((a, b) => a.empresa.localeCompare(b.empresa, 'es'));
+};
+
 export const obtenerDetalle = async (id, { incluirInterno = true } = {}) => {
   const [certificado] = await query(
     `SELECT c.id, c.numero_certificado AS numeroCertificado,

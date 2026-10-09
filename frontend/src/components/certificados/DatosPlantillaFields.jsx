@@ -1,12 +1,52 @@
 import { Building2 } from 'lucide-react'
 import { Input, Select } from '../ui/Field.jsx'
-import { plantillaDeCurso } from '../../lib/plantillas.js'
+import { useApi } from '../../hooks/useApi.js'
+import { api } from '../../lib/api.js'
+import { empresaPorDefecto } from '../../lib/datos-plantilla.js'
+import { EMPRESAS_PLANTILLAS, empresaDeCurso, plantillaDeCurso } from '../../lib/plantillas.js'
 
-export function DatosPlantillaFields({ values, curso, onChange, errors = {}, onClearError, empresaCopiada = false }) {
+const normalizar = (texto = '') => texto.trim().replace(/\s+/g, ' ').toUpperCase()
+
+// Las de certificados ya emitidos traen los datos más recientes y reemplazan a las de las plantillas.
+const unirEmpresas = (usadas) => {
+  const porNombre = new Map(EMPRESAS_PLANTILLAS.map((x) => [normalizar(x.empresa), x]))
+  for (const x of usadas) porNombre.set(normalizar(x.empresa), x)
+  return [...porNombre.values()].sort((a, b) => a.empresa.localeCompare(b.empresa, 'es'))
+}
+
+export function DatosPlantillaFields({ values, curso, onChange, errors = {}, onClearError }) {
+  const usadas = useApi((signal) => api.get('/certificados/empresas', undefined, { signal })).data?.items ?? []
+  const empresas = unirEmpresas(usadas)
   const set = (campo) => (e) => {
     onChange({ ...values, [campo]: e.target.value })
     if (errors[campo]) onClearError?.(campo)
   }
+  // Al elegir una empresa ya usada se completan sus demás datos.
+  const setEmpresa = (e) => {
+    const empresa = e.target.value
+    const conocida = empresas.find((x) => normalizar(x.empresa) === normalizar(empresa))
+    onChange({
+      ...values,
+      empresa,
+      ...(conocida && {
+        empresa: conocida.empresa,
+        nitEmpresa: conocida.nitEmpresa ?? '',
+        representanteLegal: conocida.representanteLegal ?? '',
+        documentoRepresentante: conocida.documentoRepresentante ?? '',
+        arl: conocida.arl || values.arl,
+      }),
+    })
+    if (errors.empresa) onClearError?.('empresa')
+  }
+  // Si la empresa es la que traía la plantilla del entrenador anterior, se cambia por la del nuevo.
+  const setEntrenador = (e) => {
+    const entrenador = e.target.value
+    const deLaPlantilla = normalizar(values.empresa) === normalizar(empresaDeCurso(curso, values.entrenador)?.empresa ?? '')
+    onChange({ ...values, entrenador, ...(deLaPlantilla && empresaPorDefecto(curso, entrenador)) })
+    if (errors.entrenador) onClearError?.('entrenador')
+  }
+  const empresaCurso = empresaDeCurso(curso, values.entrenador)
+  const esDeLaPlantilla = Boolean(empresaCurso) && normalizar(values.empresa) === normalizar(empresaCurso.empresa)
   const entrenadores = plantillaDeCurso(curso)?.entrenadores ?? []
   const opciones = [...new Set([...entrenadores, values.entrenador].filter(Boolean))].map((n) => ({ value: n, label: n }))
   const esElCentro = /mambuscay/i.test(values.empresa ?? '')
@@ -28,20 +68,34 @@ export function DatosPlantillaFields({ values, curso, onChange, errors = {}, onC
             independiente, deje el nombre vacío.
           </p>
         )}
-        {empresaCopiada && values.empresa && !esElCentro && (
+        {esDeLaPlantilla && (
           <p className="mb-4 rounded-[var(--radius-control)] bg-accent-soft px-3 py-2 text-sm text-ink">
-            Se copió del último certificado de esta persona. Verifique que siga trabajando en la misma empresa.
+            Viene de la plantilla de este curso. Si la persona trabaja en otra empresa, escríbala o elíjala de la lista.
           </p>
         )}
         <div className="grid gap-4 md:grid-cols-2">
           <Input
             label="Nombre de la empresa"
             value={values.empresa}
-            onChange={set('empresa')}
+            onChange={setEmpresa}
             error={errors.empresa}
             maxLength={200}
-            placeholder="Ej. INTA INGENIERIA Y TRABAJOS DE ALTURAS SAS"
+            list="empresas-usadas"
+            autoComplete="off"
+            placeholder="Escriba y elija de la lista, o escriba una nueva"
+            hint={
+              empresas.length
+                ? 'Si la empresa ya se usó antes, al elegirla se llenan solos el NIT, el representante y su cédula.'
+                : undefined
+            }
           />
+          <datalist id="empresas-usadas">
+            {empresas.map((x) => (
+              <option key={x.empresa} value={x.empresa}>
+                {x.nitEmpresa ? `NIT ${x.nitEmpresa}` : ''}
+              </option>
+            ))}
+          </datalist>
           <Input label="NIT de la empresa" value={values.nitEmpresa} onChange={set('nitEmpresa')} error={errors.nitEmpresa} maxLength={30} className="font-mono" />
           <Input
             label="Representante legal de la empresa"
@@ -67,7 +121,7 @@ export function DatosPlantillaFields({ values, curso, onChange, errors = {}, onC
         <p className="mb-4 text-sm text-muted">Ya vienen llenos con los datos de siempre; cambie solo lo que sea distinto.</p>
         <div className="grid gap-4 md:grid-cols-2">
           {opciones.length > 0 ? (
-            <Select label="Entrenador que firma" required options={opciones} value={values.entrenador} onChange={set('entrenador')} error={errors.entrenador} />
+            <Select label="Entrenador que firma" required options={opciones} value={values.entrenador} onChange={setEntrenador} error={errors.entrenador} />
           ) : (
             <Input label="Entrenador que firma" value={values.entrenador} onChange={set('entrenador')} error={errors.entrenador} maxLength={150} />
           )}

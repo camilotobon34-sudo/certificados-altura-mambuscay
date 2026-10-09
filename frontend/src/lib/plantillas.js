@@ -29,6 +29,7 @@ export const ENTRENADORES = {
 export const PLANTILLAS = [
   {
     prefijoCodigo: 'AUTORAM',
+    empresas: { 'Alexander Mambuscay T': 'FABIAN ARLEY TABARES GIRALDO', 'Yesit Gómez Pamplona': 'ALJADIS COBO PACHECO' },
     nombre: 'Trabajador autorizado',
     fondo: '/plantillas/trabajador-autorizado.jpg',
     entrenadores: ['Alexander Mambuscay T', 'Yesit Gómez Pamplona'],
@@ -39,6 +40,7 @@ export const PLANTILLAS = [
   },
   {
     prefijoCodigo: 'C00RDAM-',
+    empresas: { 'Alexander Mambuscay T': 'COOPERATIVA MULTIACTIVA DE TELECOMUNICACIONES Y TELEMÁTICOS', 'Yesit Gómez Pamplona': 'MONTAJES Y MANTENIMIENTO EL TATO SAS' },
     nombre: 'Coordinador',
     fondo: '/plantillas/coordinador.jpg',
     entrenadores: ['Alexander Mambuscay T', 'Yesit Gómez Pamplona'],
@@ -50,6 +52,7 @@ export const PLANTILLAS = [
   },
   {
     prefijoCodigo: 'REEAM',
+    empresas: { 'Camilo Giraldo Campillo': 'UNIFLOR COMERCIALIZADORA' },
     nombre: 'Reentrenamiento sectorial',
     fondo: '/plantillas/reentrenamiento.jpg',
     entrenadores: ['Camilo Giraldo Campillo'],
@@ -63,6 +66,7 @@ export const PLANTILLAS = [
   },
   {
     prefijoCodigo: 'AMTENC',
+    empresas: { 'Alexander Mambuscay T': 'CAMILO ANDRES MUÑOZ ROJAS' },
     nombre: 'Trabajo en caliente',
     fondo: '/plantillas/trabajo-en-caliente.jpg',
     entrenadores: ['Alexander Mambuscay T'],
@@ -73,6 +77,7 @@ export const PLANTILLAS = [
   },
   {
     prefijoCodigo: 'ANDA',
+    empresas: { 'Alexander Mambuscay T': 'SERVICIOS INDUSTRIALES SAN LUIS SAS' },
     nombre: 'Armado de andamios',
     fondo: '/plantillas/coordinador.jpg',
     entrenadores: ['Alexander Mambuscay T'],
@@ -85,6 +90,7 @@ export const PLANTILLAS = [
   },
   {
     prefijoCodigo: 'RESCT',
+    empresas: { 'Alexander Mambuscay T': 'ALDIMA INGENIERIA SAS' },
     nombre: 'Rescate en alturas',
     fondo: '/plantillas/coordinador.jpg',
     entrenadores: ['Alexander Mambuscay T'],
@@ -97,6 +103,7 @@ export const PLANTILLAS = [
   },
   {
     prefijoCodigo: 'AMBRIGEPAUX',
+    empresas: { 'Alexander Mambuscay T': 'INTA INGENIERIA Y TRABAJOS DE ALTURAS SAS' },
     nombre: 'Brigada de primeros auxilios',
     fondo: '/plantillas/trabajo-en-caliente.jpg',
     entrenadores: ['Alexander Mambuscay T'],
@@ -108,8 +115,53 @@ export const PLANTILLAS = [
   },
 ]
 
+// Empresas (empleadores) que aparecen en las plantillas Word, con sus datos tal como se imprimieron.
+export const EMPRESAS_PLANTILLAS = [
+  { empresa: 'ALDIMA INGENIERIA SAS', nitEmpresa: '901534804-5', arl: 'SURA' },
+  { empresa: 'ALJADIS COBO PACHECO', nitEmpresa: '43693363', representanteLegal: 'Aljadis Cobo Pacheco', documentoRepresentante: '43693363', arl: 'SURA' },
+  { empresa: 'CAMILO ANDRES MUÑOZ ROJAS', arl: 'SURA' },
+  {
+    empresa: 'COOPERATIVA MULTIACTIVA DE TELECOMUNICACIONES Y TELEMÁTICOS',
+    nitEmpresa: '811013014-1',
+    representanteLegal: 'Willian Alberto Galindo Muñoz',
+    documentoRepresentante: '15435557',
+    arl: 'SURA',
+  },
+  {
+    empresa: 'FABIAN ARLEY TABARES GIRALDO',
+    nitEmpresa: '1035854186-4',
+    representanteLegal: 'Fabian Arley Tabares Giraldo',
+    documentoRepresentante: '1.035.854.186-4',
+    arl: 'SURA',
+  },
+  { empresa: 'INTA INGENIERIA Y TRABAJOS DE ALTURAS SAS', arl: 'SURA' },
+  {
+    empresa: 'MONTAJES Y MANTENIMIENTO EL TATO SAS',
+    nitEmpresa: '900932541-1',
+    representanteLegal: 'Hector Jaime Tabares Alvarez',
+    documentoRepresentante: '98601536',
+    arl: 'SURA',
+  },
+  { empresa: 'SERVICIOS INDUSTRIALES SAN LUIS SAS', nitEmpresa: '900312930-9', arl: 'SURA' },
+  {
+    empresa: 'UNIFLOR COMERCIALIZADORA',
+    nitEmpresa: '800027543-7',
+    representanteLegal: 'Juan María Cock Londoño',
+    documentoRepresentante: '8231023',
+    arl: 'SURA',
+  },
+]
+
 export const plantillaDeCurso = ({ prefijoCodigo } = {}) =>
   PLANTILLAS.find((p) => p.prefijoCodigo === prefijoCodigo?.toUpperCase()) ?? null
+
+// Empresa que trae la plantilla Word del curso; en los cursos con dos entrenadores, la de su plantilla.
+export const empresaDeCurso = (curso, entrenador) => {
+  const empresas = plantillaDeCurso(curso ?? {})?.empresas
+  if (!empresas) return null
+  const nombre = empresas[entrenador] ?? Object.values(empresas)[0]
+  return EMPRESAS_PLANTILLAS.find((e) => e.empresa === nombre) ?? null
+}
 
 // Lo que sale igual en todos los certificados del curso, tal como se imprime.
 export const datosFijos = (p) => {
@@ -123,5 +175,6 @@ export const datosFijos = (p) => {
     representante: REPRESENTANTE_CENTRO,
     entrenadores: p.entrenadores.map((nombre) => ({ nombre, licencia: ENTRENADORES[nombre]?.licencia })),
     arl: ARL_POR_DEFECTO,
+    empresas: Object.entries(p.empresas ?? {}).map(([entrenador, empresa]) => ({ entrenador, empresa })),
   }
 }

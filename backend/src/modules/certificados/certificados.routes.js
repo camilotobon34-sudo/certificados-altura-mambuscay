@@ -107,6 +107,10 @@ router.get('/resumen', async (_req, res) => {
   res.json(await service.resumen());
 });
 
+router.get('/empresas', async (_req, res) => {
+  res.json({ items: await service.empresasUsadas() });
+});
+
 router.get('/:id', async (req, res) => {
   res.json(await service.obtenerDetalle(idParam(req)));
 });

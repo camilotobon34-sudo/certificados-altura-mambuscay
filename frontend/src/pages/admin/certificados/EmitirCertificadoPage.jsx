@@ -21,7 +21,7 @@ import {
   ARL_POR_DEFECTO,
   DATOS_PLANTILLA_VACIOS,
   datosPlantillaParaApi,
-  empresaDeUltimoCertificado,
+  empresaPorDefecto,
   fechasFormacionSugeridas,
   entrenadorPorDefecto,
   validarDatosPlantilla,
@@ -342,8 +342,6 @@ export default function EmitirCertificadoPage() {
   const [emitido, setEmitido] = useState(null)
   const [confirmaDuplicado, setConfirmaDuplicado] = useState(false)
   const [alertaDuplicado, setAlertaDuplicado] = useState(false)
-  const [empresaCopiada, setEmpresaCopiada] = useState(false)
-
   const reset = () => {
     setAlertaDuplicado(false)
     setStep(0)
@@ -355,7 +353,6 @@ export default function EmitirCertificadoPage() {
     setSubmitError('')
     setEmitido(null)
     setConfirmaDuplicado(false)
-    setEmpresaCopiada(false)
   }
 
   useApi(async (signal) => {
@@ -383,7 +380,8 @@ export default function EmitirCertificadoPage() {
     setConfirmaDuplicado(false)
     setAlertaDuplicado(Boolean(vigenteDe(c)))
     setFechas((f) => ({ ...f, intensidadHoraria: String(c.intensidadHoraria) }))
-    setPlantilla((v) => ({ ...v, entrenador: entrenadorPorDefecto(c) }))
+    const entrenador = entrenadorPorDefecto(c)
+    setPlantilla((v) => ({ ...v, entrenador, ...empresaPorDefecto(c, entrenador) }))
   }
 
   const sacarDeTodosModos = () => {
@@ -423,11 +421,8 @@ export default function EmitirCertificadoPage() {
     if (step === 2 && !validateFechas()) return
     if (step === 3 && !validatePlantilla()) return
     if (step === 2) {
-      const anterior = plantilla.empresa ? {} : empresaDeUltimoCertificado(historial.data?.certificados)
-      if (anterior.empresa) setEmpresaCopiada(true)
       setPlantilla((v) => ({
         ...v,
-        ...anterior,
         arl: v.arl || ARL_POR_DEFECTO,
         ...(v.fechaInicioFormacion || v.fechaFinFormacion
           ? {}
@@ -518,7 +513,6 @@ export default function EmitirCertificadoPage() {
             onChange={setPlantilla}
             errors={errors}
             onClearError={(campo) => setErrors((e) => ({ ...e, [campo]: undefined }))}
-            empresaCopiada={empresaCopiada}
           />
         )}
         {step === REVISION && (

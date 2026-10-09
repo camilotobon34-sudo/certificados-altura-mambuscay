@@ -1,4 +1,4 @@
-import { ARL_POR_DEFECTO, plantillaDeCurso } from './plantillas.js'
+import { ARL_POR_DEFECTO, empresaDeCurso, plantillaDeCurso } from './plantillas.js'
 
 // Datos que imprime la plantilla oficial del curso: empleador, ARL, fechas de la formación y entrenador.
 export const DATOS_PLANTILLA_VACIOS = {
@@ -32,19 +32,19 @@ export const fechasFormacionSugeridas = (fechaExpedicion, horas) => {
   return { fechaInicioFormacion: inicio, fechaFinFormacion: fechaExpedicion }
 }
 
-// Empresa, NIT, representante y ARL del último certificado de la persona (suele ser la misma empresa).
-export const empresaDeUltimoCertificado = (certificados = []) => {
-  // Altura Mambuscay es el centro de capacitación, nunca el empleador: ese dato se escribió por error.
-  const ultimo = certificados.find((c) => c.empresa && !/mambuscay/i.test(c.empresa))
-  if (!ultimo) return {}
-  return {
-    empresa: ultimo.empresa ?? '',
-    nitEmpresa: ultimo.nitEmpresa ?? '',
-    representanteLegal: ultimo.representanteLegal ?? '',
-    documentoRepresentante: ultimo.documentoRepresentante ?? '',
-    arl: ultimo.arl || ARL_POR_DEFECTO,
-  }
-}
+export const camposEmpresa = (e) => ({
+  empresa: e?.empresa ?? '',
+  nitEmpresa: e?.nitEmpresa ?? '',
+  representanteLegal: e?.representanteLegal ?? '',
+  documentoRepresentante: e?.documentoRepresentante ?? '',
+  arl: e?.arl || ARL_POR_DEFECTO,
+})
+
+// Empresa, NIT, representante y ARL que trae la plantilla Word del curso.
+export const empresaPorDefecto = (curso, entrenador) => camposEmpresa(empresaDeCurso(curso, entrenador))
+
+// Altura Mambuscay es el centro de capacitación, nunca el empleador: si quedó así fue por error.
+export const empresaInvalida = (empresa) => !empresa || /mambuscay/i.test(empresa)
 
 // Ningún dato es obligatorio: lo que quede vacío no se imprime.
 export const validarDatosPlantilla = (v) => {

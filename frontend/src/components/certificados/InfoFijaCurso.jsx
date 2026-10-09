@@ -5,7 +5,7 @@ const LO_QUE_CAMBIA = [
   'Nombre y cédula de la persona',
   'Fecha del certificado (sale en letras sola) y fechas de la formación',
   'Horas del curso y código del certificado (el código se asigna solo)',
-  'Empresa donde trabaja la persona, su NIT y su representante legal',
+  'Empresa, solo si la persona trabaja en otra distinta a la de la plantilla',
   'Entrenador que firma, si el curso tiene más de uno',
 ]
 
@@ -45,6 +45,17 @@ export function InfoFijaCurso({ plantilla, compacto = false }) {
             ))}
           </Fila>
           <Fila etiqueta="ARL">{f.arl} (se puede cambiar si el trabajador tiene otra)</Fila>
+          {f.empresas.length > 0 && (
+            <Fila etiqueta="Empresa">
+              {f.empresas.map((e) => (
+                <span key={e.entrenador} className="block">
+                  {e.empresa}
+                  {f.empresas.length > 1 && <span className="text-muted"> · con {e.entrenador}</span>}
+                </span>
+              ))}
+              <span className="block text-muted">Viene llena; se cambia si la persona trabaja en otra.</span>
+            </Fila>
+          )}
           {f.contacto && !compacto && <Fila etiqueta="Autenticidad">{f.contacto}</Fila>}
         </dl>
       </section>
