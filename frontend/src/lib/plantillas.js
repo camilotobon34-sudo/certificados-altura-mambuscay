@@ -21,10 +21,19 @@ export const LUGAR_ONAC = 'La Ceja (Antioquia) Km 3 vía La Ceja- San Nicolas'
 export const LUGAR = 'La Ceja (Antioquia)'
 
 export const ENTRENADORES = {
-  'Alexander Mambuscay T': { licencia: '2023060211376', firma: '/plantillas/firma-alexander.png' },
+  'Alexander Mambuscay T': {
+    licencia: '2023060211376',
+    firma: '/plantillas/firma-alexander.png',
+    firmaAlterna: '/plantillas/firma-alexander-2.jpg',
+  },
   'Yesit Gómez Pamplona': { licencia: '2018060225641', firma: '/plantillas/firma-yesit.png' },
   'Camilo Giraldo Campillo': { licencia: '6492', firma: '/plantillas/firma-camilo.png' },
 }
+
+// Medidas tomadas de los Word en mm desde la esquina superior izquierda de la hoja carta; las "y" de
+// los textos son la línea base. En "firmas", "de" indica de quién es la firma o el nombre (el centro
+// o el entrenador del certificado) y LICENCIA es la línea de la licencia del entrenador.
+export const LICENCIA = '@licencia'
 
 export const PLANTILLAS = [
   {
@@ -36,7 +45,47 @@ export const PLANTILLAS = [
     estilo: 'ONAC',
     encabezado: 'CERTIFICADO DE CAPACITACIÓN Y ENTRENAMIENTO PARA TRABAJO EN ALTURAS.',
     tituloCurso: 'TRABAJO  EN ALTURAS- TRABAJADOR AUTORIZADO',
-    disposicion: { encabezado: 28, cuerpo: 76.5, empresa: 167, firmas: 214, logo: { x: 74, y: 182, w: 69 }, qr: { x: 178, y: 186 } },
+    textoCurso: 'Cursó y aprobó la acción de formación',
+    textoDuracion: 'Con una duración de',
+    medidas: {
+      encabezado: 29, tamEncabezado: 12, altura: 39.5, onac: 49.1, hace: 77.8, nombre: 94.7,
+      linea: { y: 98.5, x1: 66.9, x2: 158.5 }, cedula: 104.3, curso: 117, titulo: 126.2, duracion: 134.6,
+      testimonio: 139.4, anchoTexto: 156, trasTestimonio: 4.1, trasFormacion: 3.9, trasCodigo: 4.2,
+      autenticidadX: 31, contactoX: 30,
+    },
+    empleador: {
+      y: 169.2, xEtiqueta: 30, x: 30, xRepresentante: 120.7, cxNombreRepresentante: 155.9, cxCc: 145.5,
+      tamEmpresa: 8, arl: 189.6, etiquetaArl: 'A.R.L AFILIADO TRABAJADOR', tamArl: 8, trasArl: 4.1,
+    },
+    logo: { x: 60.5, y: 180.2, w: 94.7 },
+    qr: { x: 178, y: 186 },
+    firmas: {
+      imagenes: [{ de: 'centro', x: 30, y: 215.8, w: 33.6, h: 16.5 }, { de: 'entrenador', x: 153.7, y: 217.5, w: 29.8, h: 14.7 }],
+      nombres: [{ de: 'centro', y: 241.9, cx: 50.6, subrayado: true }, { de: 'entrenador', y: 240.8, cx: 164.8, subrayado: true }],
+      textos: [
+        { t: 'Representante Legal', y: 248.7, cx: 50.6 },
+        { t: 'Entrenador', y: 247.6, cx: 164.8 },
+        { t: LICENCIA, y: 252.1, cx: 165.2 },
+      ],
+    },
+    empleadorPorEntrenador: {
+      'Yesit Gómez Pamplona': {
+        y: 169.2, xEtiqueta: 30, x: 30, xNit: 34, xRepresentante: 122.4, cxNombreRepresentante: 145.6, cxCc: 139.5,
+        tamEmpresa: 8, arl: 193.9, etiquetaArl: 'A.R.L AFILIADO TRABAJADOR', tamArl: 10, trasArl: 4.3, arlEnNegrita: true,
+      },
+    },
+    firmasPorEntrenador: {
+      'Yesit Gómez Pamplona': {
+        imagenes: [{ de: 'centro', x: 30, y: 225, w: 33.6, h: 16.5 }, { de: 'entrenador', x: 143.4, y: 227.7, w: 37.1, h: 13.7 }],
+        nombres: [{ de: 'centro', y: 251, cx: 50.6 }, { de: 'entrenador', y: 255.1, cx: 153.2 }],
+        lineas: [{ y: 253.6, x1: 22.2, x2: 80.8 }, { y: 258.7, x1: 127.6, x2: 186.2 }],
+        textos: [
+          { t: 'Representante Legal', y: 257.9, cx: 50.6 },
+          { t: 'Entrenador', y: 262, cx: 162.1 },
+          { t: LICENCIA, y: 266.5, cx: 164.8 },
+        ],
+      },
+    },
   },
   {
     prefijoCodigo: 'C00RDAM-',
@@ -46,9 +95,48 @@ export const PLANTILLAS = [
     entrenadores: ['Alexander Mambuscay T', 'Yesit Gómez Pamplona'],
     estilo: 'ONAC',
     encabezado: 'CERTIFICADO DE CAPACITACIÓN Y ENTRENAMIENTO PARA TRABAJO EN ALTURAS',
-    tamEncabezado: 10,
     tituloCurso: 'TRABAJO EN ALTURAS- COORDINADOR  4272',
-    disposicion: { encabezado: 20, cuerpo: 94, empresa: 186.5, firmas: 224, qr: { x: 178, y: 203 } },
+    textoCurso: 'Curso y aprobó la acción de formación',
+    textoDuracion: 'con una duración de',
+    contactoEnMayusculas: true,
+    medidas: {
+      centro: 103.8, encabezado: 20.6, tamEncabezado: 10, altura: 30.9, onac: 40.5, hace: 95.9, nombre: 109.3,
+      linea: { y: 113.1, x1: 59.4, x2: 151 }, cedula: 119.9, cxCedula: 100.4, curso: 126.9, titulo: 136.1,
+      duracion: 144.5, testimonio: 154, anchoTexto: 162.6, trasTestimonio: 4.8, tamFormacion: 11, trasFormacion: 4,
+      trasCodigo: 8.6,
+    },
+    empleador: {
+      y: 189, xEtiqueta: 27.5, x: 22.5, xNit: 25.6, xRepresentante: 129.9, cxNombreRepresentante: 148.4, cxCc: 152.7,
+      tamEmpresa: 10, arl: 209.4, etiquetaArl: 'A.R.L. AFILIADO TRABAJADOR', tamArl: 10, trasArl: 4.8,
+    },
+    empleadorPorEntrenador: {
+      'Yesit Gómez Pamplona': {
+        y: 189, xEtiqueta: 27.5, x: 22.5, xRepresentante: 129.9, cxNombreRepresentante: 153.7, cxCc: 152.7,
+        tamEmpresa: 10, arl: 209.4, etiquetaArl: 'A.R.L. AFILIADO TRABAJADOR', tamArl: 10, trasArl: 4.8,
+      },
+    },
+    qr: { x: 178, y: 203 },
+    firmas: {
+      imagenes: [{ de: 'centro', x: 22.5, y: 224.4, w: 37, h: 18.2 }, { de: 'entrenador', x: 144.9, y: 231.5, w: 29.8, h: 11 }],
+      nombres: [{ de: 'centro', y: 250.7, cx: 46.9 }, { de: 'entrenador', y: 252.2, cx: 158.1, subrayado: true }],
+      lineas: [{ y: 245.6, x1: 13.1, x2: 71.8 }],
+      textos: [
+        { t: 'Representante Legal', y: 257.6, cx: 46.9 },
+        { t: 'Entrenador', y: 259, cx: 158.1 },
+        { t: LICENCIA, y: 263.5, cx: 158.5 },
+      ],
+    },
+    firmasPorEntrenador: {
+      'Yesit Gómez Pamplona': {
+        imagenes: [{ de: 'centro', x: 38.4, y: 220.2, w: 37, h: 13.2 }, { de: 'entrenador', x: 136.8, y: 219.6, w: 37.1, h: 13.7 }],
+        nombres: [{ de: 'centro', y: 242.2, cx: 52.1, subrayado: true }, { de: 'entrenador', y: 243.8, cx: 165.9, subrayado: true }],
+        textos: [
+          { t: 'Representante Legal', y: 249, cx: 52.1 },
+          { t: 'Entrenador', y: 250.6, cx: 174.8 },
+          { t: LICENCIA, y: 255.1, cx: 171 },
+        ],
+      },
+    },
   },
   {
     prefijoCodigo: 'REEAM',
@@ -59,9 +147,27 @@ export const PLANTILLAS = [
     estilo: 'ONAC',
     encabezado: 'CERTIFICADO DE CAPACITACION Y ENTRENAMIENTO PARA TRABAJO EN ALTURA.',
     tituloCurso: 'Reentrenamiento Sectorial 4272',
-    disposicion: {
-      encabezado: 39, separacionEncabezado: 16, cuerpo: 99, empresa: 186.7, firmas: 224,
-      logo: { x: 62, y: 182.5, w: 90 }, qr: { x: 158, y: 196 },
+    textoCurso: 'Curso y aprobó la acción de formación',
+    textoDuracion: 'Con una duración de',
+    medidas: {
+      encabezado: 40.4, tamEncabezado: 10, altura: 50.8, onac: 72, hace: 100.6, nombre: 114.1,
+      linea: { y: 117.8, x1: 66.9, x2: 158.5 }, cedula: 123.7, curso: 132.1, titulo: 141.2, duracion: 149.7,
+      testimonio: 159.2, anchoTexto: 156, trasTestimonio: 4.1, trasFormacion: 3.9, trasCodigo: 4.2,
+    },
+    empleador: {
+      y: 189, trasEtiqueta: 5.7, xEtiqueta: 30, x: 30, xRepresentante: 131, cxNombreRepresentante: 156, cxCc: 156.6,
+      tamEmpresa: 10, arl: 215.8, etiquetaArl: 'A.R.L. AFILIADO TRABAJADOR', tamArl: 10, trasArl: 4.7, sufijoArl: ' A.R.L',
+    },
+    logo: { x: 60.5, y: 180.2, w: 94.7 },
+    qr: { x: 178, y: 203 },
+    firmas: {
+      imagenes: [{ de: 'centro', x: 30, y: 225.6, w: 33.3, h: 16.4 }, { de: 'entrenador', x: 144.3, y: 225.6, w: 40.8, h: 16.4 }],
+      nombres: [{ de: 'centro', y: 250.5, cx: 54.2, subrayado: true }, { de: 'entrenador', y: 250.5, cx: 167.1, subrayado: true }],
+      textos: [
+        { t: 'Representante Legal', y: 257.3, x: 21.4, alinear: 'left' },
+        { t: 'Entrenador', y: 257.3, cx: 167.2 },
+        { t: LICENCIA, y: 262, cx: 167.5 },
+      ],
     },
   },
   {
@@ -73,7 +179,16 @@ export const PLANTILLAS = [
     estilo: 'CINTA',
     titulo: ['Certificado de', 'Capacitación y Entrenamiento Tareas', 'de alto riesgo y trabajo en caliente'],
     tituloCurso: 'TAREAS DE ALTO RIESGO Y TRABAJO EN CALIENTE',
-    disposicion: { encabezado: 32, cuerpo: 91.4, qr: { x: 176, y: 182 } },
+    qr: { x: 176, y: 182 },
+    firmas: {
+      nombres: [{ de: 'centro', y: 220.5, cx: 160.5 }, { de: 'entrenador', y: 249.2, cx: 164.8 }],
+      lineas: [{ y: 223.8, x1: 139.6, x2: 198.2 }, { y: 251.7, x1: 140.8, x2: 199.5 }],
+      textos: [
+        { t: 'Representante Legal', y: 227.3, cx: 160.4 },
+        { t: 'Entrenador', y: 256, cx: 164.8 },
+        { t: LICENCIA, y: 260.5, cx: 164.8 },
+      ],
+    },
   },
   {
     prefijoCodigo: 'ANDA',
@@ -85,8 +200,19 @@ export const PLANTILLAS = [
     titulo: ['CERTIFICADO DE CAPACITACIÓN', 'ARMADO DE ANDAMIOS PARA', 'TRABAJO EN ALTURAS'],
     cursoAprobado: 'Curso y aprobó la acción de formación de Armado de andamios',
     empresaAlineada: 'izquierda',
-    firmaRepresentante: false,
-    disposicion: { encabezado: 32, cuerpo: 117, qr: { x: 176, y: 182 } },
+    autenticidad: 221.3,
+    qr: { x: 176, y: 182 },
+    firmaAlterna: true,
+    firmas: {
+      imagenes: [{ de: 'entrenador', x: 150.7, y: 242, w: 42.3, h: 16.2 }],
+      nombres: [{ de: 'centro', y: 255.9, cx: 49.7 }, { de: 'entrenador', y: 268.9, cx: 167.7 }],
+      lineas: [{ y: 258.1, x1: 20.6, x2: 79.3 }],
+      textos: [
+        { t: 'Representante Legal o Delegado', y: 262.7, cx: 49.7 },
+        { t: 'del Centro de Capacitación', y: 267.8, cx: 49.7 },
+        { t: LICENCIA, y: 275.1, cx: 167.7 },
+      ],
+    },
   },
   {
     prefijoCodigo: 'RESCT',
@@ -98,8 +224,19 @@ export const PLANTILLAS = [
     titulo: ['CERTIFICADO DE CAPACITACIÓN Y', 'ENTRENAMIENTO DE RESCATE EN', 'ALTURAS'],
     cursoAprobado: 'Curso y aprobó la acción de formación de RESCATE EN ALTURAS',
     empresaAlineada: 'centro',
-    firmaRepresentante: true,
-    disposicion: { encabezado: 32, cuerpo: 117, qr: { x: 182, y: 188 } },
+    autenticidad: 211.4,
+    qr: { x: 182, y: 188 },
+    firmaAlterna: true,
+    firmas: {
+      imagenes: [{ de: 'centro', x: 30, y: 237.6, w: 42.3, h: 16.2 }, { de: 'entrenador', x: 152, y: 237.9, w: 42.3, h: 16.2 }],
+      nombres: [{ de: 'centro', y: 261.5, cx: 46.9 }, { de: 'entrenador', y: 267.7, cx: 167.7, subrayado: true }],
+      lineas: [{ y: 263, x1: 19, x2: 77.7 }],
+      textos: [
+        { t: 'Representante Legal o Delegado del', y: 268.4, cx: 46.9 },
+        { t: 'Centro de Capacitación', y: 273.5, cx: 46.9 },
+        { t: LICENCIA, y: 273.9, cx: 167.7 },
+      ],
+    },
   },
   {
     prefijoCodigo: 'AMBRIGEPAUX',
@@ -111,7 +248,16 @@ export const PLANTILLAS = [
     titulo: ['Certificado de', 'Capacitación y Entrenamiento', 'Brigadas de Emergencia', 'Empresariales'],
     tituloCurso: 'BRIGADA DE PRIMEROS AUXILIOS',
     horasDosDigitos: true,
-    disposicion: { encabezado: 32, cuerpo: 103.5, qr: { x: 176, y: 194 } },
+    qr: { x: 176, y: 194 },
+    firmas: {
+      nombres: [{ de: 'centro', y: 232.6, cx: 160.5 }, { de: 'entrenador', y: 261.2, cx: 164.8 }],
+      lineas: [{ y: 235.8, x1: 139.6, x2: 198.2 }, { y: 263.7, x1: 140.8, x2: 199.5 }],
+      textos: [
+        { t: 'Representante Legal', y: 239.4, cx: 160.4 },
+        { t: 'Entrenador', y: 268.1, cx: 164.8 },
+        { t: LICENCIA, y: 272.6, cx: 164.8 },
+      ],
+    },
   },
 ]
 
