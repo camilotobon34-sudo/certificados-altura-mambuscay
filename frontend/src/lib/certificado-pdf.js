@@ -1,7 +1,19 @@
 import { jsPDF } from 'jspdf'
 import QRCode from 'qrcode'
-import { ARL_POR_DEFECTO, fechasFormacionSugeridas } from './datos-plantilla.js'
-import { ENTRENADORES, REPRESENTANTE_CENTRO, plantillaDeCurso } from './plantillas.js'
+import { fechasFormacionSugeridas } from './datos-plantilla.js'
+import {
+  ARL_POR_DEFECTO,
+  AUTENTICIDAD,
+  CONTACTO,
+  CONTACTO_ONAC,
+  ENTRENADORES,
+  LINEAS_CENTRO,
+  LINEAS_ONAC,
+  LUGAR,
+  LUGAR_ONAC,
+  REPRESENTANTE_CENTRO,
+  plantillaDeCurso,
+} from './plantillas.js'
 
 // Certificado oficial: reproduce la plantilla Word de cada curso (hoja carta, medidas en mm).
 
@@ -9,19 +21,6 @@ const CAFE = '#843C0C'
 const NEGRO = '#000000'
 const W = 215.9
 const CX = W / 2
-
-const LINEAS_ONAC = [
-  'NIT: 901269652-6',
-  'CON LICENCIA DE SALUD OCUPACIONAL (DSSA) 97325',
-  'PERSONA JURIDICA CERTIFICADA EN LA NTC 6072 ORGANISMO CERTIFICADOR BUREAU VERITAS',
-  'CERTIFICATION No. CO23.00687 22 DE AGOSTO DE 2023 ACREDITADO POR LA ONAC CODIGO 09-CPR-008 Y',
-  'CUMPLIENDO LA RESOLUCIÓN 4272 DE 2021 PARA FORMAR EN TRABAJOS DE ALTURA.',
-  'Aprobado Ministerio de Trabajo 08SE2020220000000026234 DE 24 agosto de 2020',
-]
-const LINEAS_CENTRO = ['ALTURA MAMBUSCAY S.A.S', 'NIT: 901269652-6', 'CON LICENCIA DE SALUD OCUPACIONAL (DSSA) 97325']
-const AUTENTICIDAD = 'LA AUTENTICIDAD DE ESTE DOCUMENTO PUEDE SER VALIDADA EN LOS CORREOS ELECTRONICOS:'
-const CONTACTO_ONAC = 'alturamambuscay@gmail.com O alexmt926@gmail.com TELEFONOS: 3148237245'
-const CONTACTO = 'alturamambuscay@gmail.com TELEFONOS: 3148237245'
 
 const TIPOS_DOCUMENTO = {
   CC: 'Cédula de Ciudadanía',
@@ -253,7 +252,7 @@ function plantillaOnac(doc, c, p, r) {
   escribir(doc, 'Cursó y aprobó la acción de formación', H + 38.5, { estilo: 'italic', tam: 11, color: CAFE })
   escribir(doc, p.tituloCurso, H + 47, { estilo: 'bold', tam: 14, color: CAFE })
   escribir(doc, `Con una duración de ${horas(c, p)} horas`, H + 55.5, { estilo: 'italic', tam: 11, color: CAFE })
-  y = escribir(doc, frasesFirma(c.fechaExpedicion, 'La Ceja (Antioquia) Km 3 vía La Ceja- San Nicolas'), H + 59.8, {
+  y = escribir(doc, frasesFirma(c.fechaExpedicion, LUGAR_ONAC), H + 59.8, {
     tam: 11, color: CAFE, ancho: 160,
   })
   const formacion = fraseFormacion(c.fechaInicioFormacion, c.fechaFinFormacion)
@@ -325,7 +324,7 @@ function plantillaCinta(doc, c, p, r) {
   escribir(doc, 'Curso y aprobó la acción de formación', H + 48, { estilo: 'italic', tam: 11, color: NEGRO })
   escribir(doc, p.tituloCurso, H + 56.5, { estilo: 'bold', tam: 14, color: NEGRO })
   escribir(doc, `con una duración de ${horas(c, p)} horas`, H + 65.5, { estilo: 'italic', tam: 11, color: NEGRO })
-  y = escribir(doc, frasesFirma(c.fechaExpedicion, 'La Ceja (Antioquia)'), H + 79.3, { tam: 11, color: NEGRO, ancho: 170 })
+  y = escribir(doc, frasesFirma(c.fechaExpedicion, LUGAR), H + 79.3, { tam: 11, color: NEGRO, ancho: 170 })
   y = escribir(doc, `Código de certificación: ${c.numeroCertificado}`, y + 8.4, { tam: 9, color: NEGRO })
   for (const [etiqueta, valor] of [['EMPRESA', c.empresa], ['NIT', c.nitEmpresa], ['ARL', c.arl]]) {
     if (!valor) continue
@@ -376,7 +375,7 @@ function plantillaMedalla(doc, c, p, r) {
       y = escribir(doc, `${etiqueta}: ${valor ?? ''}`, y + 4.7, { estilo: 'italic', tam: 11, color: CAFE, ancho: 150 })
     }
   }
-  y = escribir(doc, frasesFirma(c.fechaExpedicion, 'La Ceja (Antioquia)'), y + 12.8, { tam: 11, color: CAFE, ancho: 155 })
+  y = escribir(doc, frasesFirma(c.fechaExpedicion, LUGAR), y + 12.8, { tam: 11, color: CAFE, ancho: 155 })
   y = escribir(doc, `Código de certificación: ${c.numeroCertificado}`, y + 4.4, { tam: 9, color: CAFE })
   if (p.empresaAlineada === 'izquierda') {
     y += 3.8

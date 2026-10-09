@@ -1,4 +1,4 @@
-import { plantillaDeCurso } from './plantillas.js'
+import { ARL_POR_DEFECTO, plantillaDeCurso } from './plantillas.js'
 
 // Datos que imprime la plantilla oficial del curso: empleador, ARL, fechas de la formación y entrenador.
 export const DATOS_PLANTILLA_VACIOS = {
@@ -21,7 +21,7 @@ export const datosPlantillaParaApi = (v) =>
 export const entrenadorPorDefecto = (curso) => plantillaDeCurso(curso)?.entrenadores[0] ?? ''
 
 // Todas las plantillas del centro traen SURA.
-export const ARL_POR_DEFECTO = 'SURA'
+export { ARL_POR_DEFECTO }
 
 // La formación termina el día de expedición y dura una jornada de 8 horas por día (32 h → 4 días).
 export const fechasFormacionSugeridas = (fechaExpedicion, horas) => {

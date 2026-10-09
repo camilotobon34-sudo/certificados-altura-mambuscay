@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { Save } from 'lucide-react'
+import { InfoFijaCurso } from '../../../components/certificados/InfoFijaCurso.jsx'
 import { Alert } from '../../../components/ui/Alert.jsx'
 import { Button } from '../../../components/ui/Button.jsx'
 import { Card } from '../../../components/ui/Card.jsx'
@@ -194,6 +195,11 @@ export default function CursoFormPage() {
         )}
       </Card>
       </div>
+      {plantilla && (
+        <Card title="Información del certificado de este curso" className="mt-6">
+          <InfoFijaCurso plantilla={plantilla} />
+        </Card>
+      )}
     </>
   )
 }

@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { ArrowLeft, ArrowRight, CircleCheck, Eye, FilePlus2, Search, TriangleAlert, UserPlus } from 'lucide-react'
 import { DatosPlantillaFields } from '../../../components/certificados/DatosPlantillaFields.jsx'
+import { InfoFijaCurso } from '../../../components/certificados/InfoFijaCurso.jsx'
+import { plantillaDeCurso } from '../../../lib/plantillas.js'
 import { GuardarCertificadoButton } from '../../../components/certificados/GuardarCertificadoButton.jsx'
 import { QRBlock } from '../../../components/certificados/QRBlock.jsx'
 import { Alert } from '../../../components/ui/Alert.jsx'
@@ -170,43 +172,52 @@ function StepPersona({ persona, onSelect, vigentes }) {
   )
 }
 
-function StepCurso({ cursoId, onSelect, vigentes }) {
+function StepCurso({ curso, onSelect, vigentes }) {
+  const cursoId = curso?.id
   const { data, loading, error } = useApi((signal) => api.get('/cursos', { activos: 1 }, { signal }))
   if (loading) return <Spinner />
   if (error) return <ErrorState error={error} />
+  const plantilla = curso ? plantillaDeCurso(curso) : null
   return (
-    <fieldset className="grid gap-3 md:grid-cols-2">
-      <legend className="sr-only">Seleccione el curso</legend>
-      {data.items.map((c) => {
-        const vigente = vigentes.find((v) => Number(v.cursoId) === Number(c.id))
-        return (
-          <label
-            key={c.id}
-            className={`flex cursor-pointer gap-3 rounded-[var(--radius-card)] border p-4 transition-colors ${
-              cursoId === c.id ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-line hover:border-primary/50'
-            }`}
-          >
-            <input type="radio" name="curso" className="mt-1 accent-primary" checked={cursoId === c.id} onChange={() => onSelect(c)} />
-            <span>
-              <span className="block font-semibold text-ink">{c.nombre}</span>
-              {c.nivel && <span className="block text-sm text-muted">{tituloFormacion(c)}</span>}
-              <span className="mt-2 inline-flex flex-wrap gap-2 text-xs">
-                <span className="rounded-full bg-accent-soft px-2 py-0.5 font-medium text-warning">{c.intensidadHoraria} horas</span>
-                {c.prefijoCodigo && (
-                  <span className="rounded-full bg-primary/10 px-2 py-0.5 font-mono font-medium text-primary">{c.prefijoCodigo}</span>
-                )}
-                {vigente && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-warning-soft px-2 py-0.5 font-semibold text-warning">
-                    <TriangleAlert className="size-3" aria-hidden="true" />
-                    Ya tiene uno vigente hasta {formatDate(vigente.fechaVencimiento)}
-                  </span>
-                )}
+    <div className="flex flex-col gap-6">
+      <fieldset className="grid gap-3 md:grid-cols-2">
+        <legend className="sr-only">Seleccione el curso</legend>
+        {data.items.map((c) => {
+          const vigente = vigentes.find((v) => Number(v.cursoId) === Number(c.id))
+          return (
+            <label
+              key={c.id}
+              className={`flex cursor-pointer gap-3 rounded-[var(--radius-card)] border p-4 transition-colors ${
+                cursoId === c.id ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-line hover:border-primary/50'
+              }`}
+            >
+              <input type="radio" name="curso" className="mt-1 accent-primary" checked={cursoId === c.id} onChange={() => onSelect(c)} />
+              <span>
+                <span className="block font-semibold text-ink">{c.nombre}</span>
+                {c.nivel && <span className="block text-sm text-muted">{tituloFormacion(c)}</span>}
+                <span className="mt-2 inline-flex flex-wrap gap-2 text-xs">
+                  <span className="rounded-full bg-accent-soft px-2 py-0.5 font-medium text-warning">{c.intensidadHoraria} horas</span>
+                  {c.prefijoCodigo && (
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 font-mono font-medium text-primary">{c.prefijoCodigo}</span>
+                  )}
+                  {vigente && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-warning-soft px-2 py-0.5 font-semibold text-warning">
+                      <TriangleAlert className="size-3" aria-hidden="true" />
+                      Ya tiene uno vigente hasta {formatDate(vigente.fechaVencimiento)}
+                    </span>
+                  )}
+                </span>
               </span>
-            </span>
-          </label>
-        )
-      })}
-    </fieldset>
+            </label>
+          )
+        })}
+      </fieldset>
+      {plantilla && (
+        <div className="rounded-[var(--radius-card)] border border-line p-4">
+          <InfoFijaCurso plantilla={plantilla} compacto />
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -498,7 +509,7 @@ export default function EmitirCertificadoPage() {
       )}
       <Card title={STEPS[step]}>
         {step === 0 && <StepPersona persona={persona} onSelect={selectPersona} vigentes={vigentes} />}
-        {step === 1 && <StepCurso cursoId={curso?.id} onSelect={selectCurso} vigentes={vigentes} />}
+        {step === 1 && <StepCurso curso={curso} onSelect={selectCurso} vigentes={vigentes} />}
         {step === 2 && <StepFechas values={fechas} curso={curso} onChange={setFechas} errors={errors} />}
         {step === 3 && (
           <DatosPlantillaFields

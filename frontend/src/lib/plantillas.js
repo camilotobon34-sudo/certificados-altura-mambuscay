@@ -3,6 +3,22 @@
 // Los textos fijos se copiaron de los Word originales.
 
 export const REPRESENTANTE_CENTRO = 'Alexander Mambuscay T'
+export const ARL_POR_DEFECTO = 'SURA'
+
+export const LINEAS_CENTRO = ['ALTURA MAMBUSCAY S.A.S', 'NIT: 901269652-6', 'CON LICENCIA DE SALUD OCUPACIONAL (DSSA) 97325']
+export const LINEAS_ONAC = [
+  'NIT: 901269652-6',
+  'CON LICENCIA DE SALUD OCUPACIONAL (DSSA) 97325',
+  'PERSONA JURIDICA CERTIFICADA EN LA NTC 6072 ORGANISMO CERTIFICADOR BUREAU VERITAS',
+  'CERTIFICATION No. CO23.00687 22 DE AGOSTO DE 2023 ACREDITADO POR LA ONAC CODIGO 09-CPR-008 Y',
+  'CUMPLIENDO LA RESOLUCIÓN 4272 DE 2021 PARA FORMAR EN TRABAJOS DE ALTURA.',
+  'Aprobado Ministerio de Trabajo 08SE2020220000000026234 DE 24 agosto de 2020',
+]
+export const AUTENTICIDAD = 'LA AUTENTICIDAD DE ESTE DOCUMENTO PUEDE SER VALIDADA EN LOS CORREOS ELECTRONICOS:'
+export const CONTACTO_ONAC = 'alturamambuscay@gmail.com O alexmt926@gmail.com TELEFONOS: 3148237245'
+export const CONTACTO = 'alturamambuscay@gmail.com TELEFONOS: 3148237245'
+export const LUGAR_ONAC = 'La Ceja (Antioquia) Km 3 vía La Ceja- San Nicolas'
+export const LUGAR = 'La Ceja (Antioquia)'
 
 export const ENTRENADORES = {
   'Alexander Mambuscay T': { licencia: '2023060211376', firma: '/plantillas/firma-alexander.png' },
@@ -94,3 +110,18 @@ export const PLANTILLAS = [
 
 export const plantillaDeCurso = ({ prefijoCodigo } = {}) =>
   PLANTILLAS.find((p) => p.prefijoCodigo === prefijoCodigo?.toUpperCase()) ?? null
+
+// Lo que sale igual en todos los certificados del curso, tal como se imprime.
+export const datosFijos = (p) => {
+  const onac = p.estilo === 'ONAC'
+  return {
+    titulo: onac ? p.encabezado : p.titulo.join(' '),
+    curso: p.tituloCurso ?? p.cursoAprobado,
+    centro: onac ? ['ALTURA MAMBUSCAY S.A.S', ...LINEAS_ONAC] : LINEAS_CENTRO,
+    lugar: onac ? LUGAR_ONAC : LUGAR,
+    contacto: p.estilo === 'CINTA' ? null : `${AUTENTICIDAD} ${onac ? CONTACTO_ONAC : CONTACTO}`,
+    representante: REPRESENTANTE_CENTRO,
+    entrenadores: p.entrenadores.map((nombre) => ({ nombre, licencia: ENTRENADORES[nombre]?.licencia })),
+    arl: ARL_POR_DEFECTO,
+  }
+}
