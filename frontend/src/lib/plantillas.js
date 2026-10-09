@@ -28,6 +28,7 @@ export const PLANTILLAS = [
     entrenadores: ['Alexander Mambuscay T', 'Yesit Gómez Pamplona'],
     estilo: 'ONAC',
     encabezado: 'CERTIFICADO DE CAPACITACIÓN Y ENTRENAMIENTO PARA TRABAJO EN ALTURAS',
+    tamEncabezado: 10,
     tituloCurso: 'TRABAJO EN ALTURAS- COORDINADOR  4272',
     disposicion: { encabezado: 20, cuerpo: 94, empresa: 186.5, firmas: 224, qr: { x: 178, y: 203 } },
   },
@@ -76,7 +77,7 @@ export const PLANTILLAS = [
     cursoAprobado: 'Curso y aprobó la acción de formación de RESCATE EN ALTURAS',
     empresaAlineada: 'centro',
     firmaRepresentante: true,
-    disposicion: { encabezado: 32, cuerpo: 117, qr: { x: 24, y: 214 } },
+    disposicion: { encabezado: 32, cuerpo: 117, qr: { x: 182, y: 188 } },
   },
   {
     prefijoCodigo: 'AMBRIGEPAUX',

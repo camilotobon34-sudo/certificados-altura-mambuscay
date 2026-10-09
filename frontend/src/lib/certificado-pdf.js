@@ -87,7 +87,7 @@ const nombrePropio = (texto = '') =>
     .map((p, i) => (i > 0 && PALABRAS_MENORES.has(p) ? p : p.charAt(0).toUpperCase() + p.slice(1)))
     .join(' ')
 
-// Las fuentes estándar de PDF solo cubren Latin-1.
+// Las fuentes incrustadas solo traen los caracteres Latin-1.
 const latin1 = (texto) => String(texto ?? '').replace(/[—–]/g, '-')
 
 // ---------------------------------------------------------------------------------------------
@@ -137,16 +137,21 @@ const cargarFuente = (url) =>
     return btoa(binario)
   })
 
-const FUENTES = {
-  manuscrita: { archivo: 'PinyonScript-Regular.ttf', url: '/fuentes/PinyonScript-Regular.ttf' },
-  romana: { archivo: 'Cinzel.ttf', url: '/fuentes/Cinzel-var.ttf' },
-}
+// Carlito tiene las mismas medidas que Calibri, la letra de las plantillas Word.
+const FUENTES = [
+  ['manuscrita', 'normal', '/fuentes/PinyonScript-Regular.ttf'],
+  ['romana', 'normal', '/fuentes/Cinzel-var.ttf'],
+  ['calibri', 'normal', '/fuentes/Carlito-Regular.ttf'],
+  ['calibri', 'bold', '/fuentes/Carlito-Bold.ttf'],
+  ['calibri', 'italic', '/fuentes/Carlito-Italic.ttf'],
+]
 
 const registrarFuentes = async (doc) => {
   await Promise.all(
-    Object.entries(FUENTES).map(async ([nombre, { archivo, url }]) => {
+    FUENTES.map(async ([nombre, estilo, url]) => {
+      const archivo = url.split('/').pop()
       doc.addFileToVFS(archivo, await cargarFuente(url))
-      doc.addFont(archivo, nombre, 'normal')
+      doc.addFont(archivo, nombre, estilo)
     }),
   )
 }
@@ -154,7 +159,7 @@ const registrarFuentes = async (doc) => {
 // ---------------------------------------------------------------------------------------------
 // Ayudas de dibujo
 
-const fuente = (doc, { familia = 'helvetica', estilo = 'normal', tam, color }) => {
+const fuente = (doc, { familia = 'calibri', estilo = 'normal', tam, color }) => {
   doc.setFont(familia, estilo)
   if (tam) doc.setFontSize(tam)
   if (color) doc.setTextColor(color)
@@ -163,7 +168,7 @@ const fuente = (doc, { familia = 'helvetica', estilo = 'normal', tam, color }) =
 // Escribe texto (centrado por defecto) y devuelve la línea base de la última línea.
 const escribir = (doc, texto, y, { x = CX, ancho, alinear = 'center', interlineado = 1.15, ...estilo } = {}) => {
   fuente(doc, estilo)
-  const plano = estilo.familia && estilo.familia !== 'helvetica' ? String(texto ?? '') : latin1(texto)
+  const plano = latin1(texto)
   const lineas = ancho ? doc.splitTextToSize(plano, ancho) : [plano]
   doc.text(lineas, x, y, { align: alinear, lineHeightFactor: interlineado })
   const paso = (doc.getFontSize() * interlineado * 25.4) / 72
@@ -230,134 +235,136 @@ function plantillaOnac(doc, c, p, r) {
   const d = p.disposicion
   if (d.logo && r.logo) doc.addImage(r.logo.data, 'PNG', d.logo.x, d.logo.y, d.logo.w, d.logo.w / r.logo.ratio)
   let y = d.encabezado
-  escribir(doc, p.encabezado, y, { estilo: 'bold', tam: 9, color: CAFE })
-  escribir(doc, 'ALTURA MAMBUSCAY S.A.S', y + 10, { estilo: 'bold', tam: 23 })
+  escribir(doc, p.encabezado, y, { estilo: 'bold', tam: p.tamEncabezado ?? 12, color: CAFE })
+  escribir(doc, 'ALTURA MAMBUSCAY S.A.S', y + 10, { estilo: 'bold', tam: 28 })
   y += 10 + (d.separacionEncabezado ?? 0) + 8.5
   for (const linea of LINEAS_ONAC) {
-    escribir(doc, linea, y, { tam: 7, color: CAFE })
+    escribir(doc, linea, y, { tam: 9, color: CAFE })
     y += 3.6
   }
 
   const H = d.cuerpo
-  escribir(doc, 'HACE CONSTAR QUE', H, { estilo: 'bold', tam: 8, color: CAFE })
-  nombreManuscrito(doc, nombrePropio(c.nombreCompleto), CX, H + 14, 28, 120)
+  escribir(doc, 'HACE CONSTAR QUE', H, { estilo: 'bold', tam: 11, color: CAFE })
+  nombreManuscrito(doc, nombrePropio(c.nombreCompleto), CX, H + 14, 34, 130)
   doc.setDrawColor(CAFE)
   doc.setLineWidth(0.4)
   doc.line(CX - 45, H + 18, CX + 45, H + 18)
-  lineaDocumento(doc, c, H + 26.5, { color: CAFE })
-  escribir(doc, 'Cursó y aprobó la acción de formación', H + 38.5, { estilo: 'italic', tam: 8.5, color: CAFE })
-  escribir(doc, p.tituloCurso, H + 47, { estilo: 'bold', tam: 11.5, color: CAFE })
-  escribir(doc, `Con una duración de ${horas(c, p)} horas`, H + 55.5, { estilo: 'italic', tam: 9, color: CAFE })
+  lineaDocumento(doc, c, H + 26.5, { color: CAFE, tam: 10 })
+  escribir(doc, 'Cursó y aprobó la acción de formación', H + 38.5, { estilo: 'italic', tam: 11, color: CAFE })
+  escribir(doc, p.tituloCurso, H + 47, { estilo: 'bold', tam: 14, color: CAFE })
+  escribir(doc, `Con una duración de ${horas(c, p)} horas`, H + 55.5, { estilo: 'italic', tam: 11, color: CAFE })
   y = escribir(doc, frasesFirma(c.fechaExpedicion, 'La Ceja (Antioquia) Km 3 vía La Ceja- San Nicolas'), H + 59.8, {
-    tam: 9, color: CAFE, ancho: 150,
+    tam: 11, color: CAFE, ancho: 160,
   })
   const formacion = fraseFormacion(c.fechaInicioFormacion, c.fechaFinFormacion)
-  if (formacion) y = escribir(doc, formacion, y + 4, { tam: 7, color: CAFE })
-  y = escribir(doc, `Código de certificación: ${c.numeroCertificado}`, y + 3.8, { tam: 7, color: CAFE })
-  escribir(doc, AUTENTICIDAD, y + 4.5, { tam: 8.5, color: NEGRO })
-  escribir(doc, CONTACTO_ONAC, y + 8.6, { tam: 8.5, color: NEGRO })
+  if (formacion) y = escribir(doc, formacion, y + 4.4, { tam: 9, color: CAFE })
+  y = escribir(doc, `Código de certificación: ${c.numeroCertificado}`, y + 3.9, { tam: 9, color: CAFE })
+  escribir(doc, AUTENTICIDAD, y + 4.5, { tam: 10, color: NEGRO })
+  escribir(doc, CONTACTO_ONAC, y + 8.6, { tam: 10, color: NEGRO })
 
   const E = d.empresa
   const XI = 31
   const XD = 121
   if (c.empresa) {
-    escribir(doc, 'EMPLEADOR', E, { x: XI, alinear: 'left', estilo: 'bold', tam: 7.5, color: NEGRO })
+    escribir(doc, 'EMPLEADOR', E, { x: XI, alinear: 'left', estilo: 'bold', tam: 10, color: NEGRO })
     const finEmpresa = escribir(doc, c.empresa.toUpperCase(), E + 6.3, {
       x: XI, alinear: 'left', familia: 'romana', tam: 8, color: CAFE, ancho: 82, interlineado: 1.3,
     })
     if (c.nitEmpresa) {
       escribir(doc, `NIT: ${c.nitEmpresa}`, Math.max(E + 11.8, finEmpresa + 4.6), {
-        x: XI + 2, alinear: 'left', estilo: 'bold', tam: 7.5, color: CAFE,
+        x: XI + 2, alinear: 'left', estilo: 'bold', tam: 10, color: CAFE,
       })
     }
   }
   if (c.representanteLegal || c.documentoRepresentante) {
-    escribir(doc, 'REPRESENTANTE LEGAL EMPLEADOR', E, { x: XD, alinear: 'left', estilo: 'bold', tam: 7.5, color: NEGRO })
+    escribir(doc, 'REPRESENTANTE LEGAL EMPLEADOR', E, { x: XD, alinear: 'left', estilo: 'bold', tam: 10, color: NEGRO })
     if (c.representanteLegal) nombreManuscrito(doc, nombrePropio(c.representanteLegal), XD + 27, E + 6.5, 14, 64)
     if (c.documentoRepresentante) {
       escribir(doc, `CC: ${conPuntos(c.documentoRepresentante)}`, E + 11.8, {
-        x: XD + 10, alinear: 'left', estilo: 'bold', tam: 7.5, color: CAFE,
+        x: XD + 10, alinear: 'left', estilo: 'bold', tam: 10, color: CAFE,
       })
     }
   }
-  escribir(doc, 'A.R.L. AFILIADO TRABAJADOR', E + 20.5, { x: XI, alinear: 'left', estilo: 'bold', tam: 7.5, color: NEGRO })
+  escribir(doc, 'A.R.L. AFILIADO TRABAJADOR', E + 20.5, { x: XI, alinear: 'left', estilo: 'bold', tam: 10, color: NEGRO })
   escribir(doc, (c.arl ?? '').toUpperCase(), E + 25, { x: XI, alinear: 'left', familia: 'romana', tam: 8, color: CAFE })
 
   const F = d.firmas
   const XL = 48
   const XR = 168
   firma(doc, r.firmaCentro, XL, F, 30)
-  nombreManuscrito(doc, REPRESENTANTE_CENTRO, XL, F + 22.5, 17, 62, NEGRO)
+  nombreManuscrito(doc, REPRESENTANTE_CENTRO, XL, F + 22.5, 21, 66, NEGRO)
   lineaPunteada(doc, XL - 31, XL + 31, F + 23.8)
-  escribir(doc, 'Representante Legal', F + 30.5, { x: XL, estilo: 'bold', tam: 8.5, color: NEGRO })
+  escribir(doc, 'Representante Legal', F + 30.5, { x: XL, estilo: 'bold', tam: 12, color: NEGRO })
   firma(doc, r.firmaEntrenador, XR, F + 1, 30)
-  nombreManuscrito(doc, r.entrenador, XR, F + 22.5, 17, 62, NEGRO)
+  nombreManuscrito(doc, r.entrenador, XR, F + 22.5, 21, 66, NEGRO)
   lineaPunteada(doc, XR - 31, XR + 31, F + 23.8)
-  escribir(doc, 'Entrenador', F + 30, { x: XR, estilo: 'bold', tam: 8.5, color: NEGRO })
-  if (r.licencia) escribir(doc, `ENTRENADOR TSA LICENCIA S.O ${r.licencia}`, F + 34.5, { x: XR, tam: 7, color: NEGRO })
+  escribir(doc, 'Entrenador', F + 30, { x: XR, estilo: 'bold', tam: 12, color: NEGRO })
+  if (r.licencia) escribir(doc, `ENTRENADOR TSA LICENCIA S.O ${r.licencia}`, F + 34.5, { x: XR, tam: 10, color: NEGRO })
 }
 
 function plantillaCinta(doc, c, p, r) {
   const d = p.disposicion
   let y = d.encabezado
   for (const linea of p.titulo) {
-    escribir(doc, linea, y, { estilo: 'bold', tam: 21, color: NEGRO })
-    y += 11.8
+    escribir(doc, linea, y, { estilo: 'bold', tam: 28, color: NEGRO })
+    y += 12.6
   }
   y -= 1.2
   for (const linea of LINEAS_CENTRO) {
-    escribir(doc, linea, y, { estilo: 'bold', tam: 6.5, color: NEGRO })
+    escribir(doc, linea, y, { estilo: 'bold', tam: 9, color: NEGRO })
     y += 3.9
   }
 
   const H = d.cuerpo
-  escribir(doc, 'HACE CONSTAR QUE', H, { estilo: 'bold', tam: 8, color: NEGRO })
-  nombreManuscrito(doc, nombrePropio(c.nombreCompleto), CX, H + 19.6, 27, 125, NEGRO)
+  escribir(doc, 'HACE CONSTAR QUE', H, { estilo: 'bold', tam: 11, color: NEGRO })
+  nombreManuscrito(doc, nombrePropio(c.nombreCompleto), CX, H + 19.6, 34, 130, NEGRO)
   doc.setDrawColor(NEGRO)
   doc.setLineWidth(0.25)
   doc.line(CX - 46, H + 23, CX + 46, H + 23)
-  lineaDocumento(doc, c, H + 31.3, { color: NEGRO, numeroNegrita: false })
-  escribir(doc, 'Curso y aprobó la acción de formación', H + 48, { estilo: 'italic', tam: 8.5, color: NEGRO })
-  escribir(doc, p.tituloCurso, H + 56.5, { estilo: 'bold', tam: 10.5, color: NEGRO })
-  escribir(doc, `con una duración de ${horas(c, p)} horas`, H + 65.5, { estilo: 'italic', tam: 8.5, color: NEGRO })
-  y = escribir(doc, frasesFirma(c.fechaExpedicion, 'La Ceja (Antioquia)'), H + 79.3, { tam: 9, color: NEGRO, ancho: 150 })
-  y = escribir(doc, `Código de certificación: ${c.numeroCertificado}`, y + 8.4, { tam: 7, color: NEGRO })
+  lineaDocumento(doc, c, H + 31.3, { color: NEGRO, numeroNegrita: false, tam: 10 })
+  escribir(doc, 'Curso y aprobó la acción de formación', H + 48, { estilo: 'italic', tam: 11, color: NEGRO })
+  escribir(doc, p.tituloCurso, H + 56.5, { estilo: 'bold', tam: 14, color: NEGRO })
+  escribir(doc, `con una duración de ${horas(c, p)} horas`, H + 65.5, { estilo: 'italic', tam: 11, color: NEGRO })
+  y = escribir(doc, frasesFirma(c.fechaExpedicion, 'La Ceja (Antioquia)'), H + 79.3, { tam: 11, color: NEGRO, ancho: 170 })
+  y = escribir(doc, `Código de certificación: ${c.numeroCertificado}`, y + 8.4, { tam: 9, color: NEGRO })
   for (const [etiqueta, valor] of [['EMPRESA', c.empresa], ['NIT', c.nitEmpresa], ['ARL', c.arl]]) {
     if (!valor) continue
-    y = escribir(doc, `${etiqueta}: ${(valor ?? '').toUpperCase()}`, y + 4.1, { tam: 7, color: NEGRO, ancho: 120 })
+    y = escribir(doc, `${etiqueta}: ${(valor ?? '').toUpperCase()}`, y + 4.1, {
+      tam: 9, color: NEGRO, ancho: 150, estilo: etiqueta === 'EMPRESA' ? 'bold' : 'normal',
+    })
   }
 
   const XR = 163
-  nombreManuscrito(doc, REPRESENTANTE_CENTRO, XR, H + 125.4, 17, 62, NEGRO)
-  lineaPunteada(doc, XR - 26, XR + 30, H + 127.4)
-  escribir(doc, 'Representante Legal', H + 133, { x: XR, estilo: 'bold', tam: 8.5, color: NEGRO })
-  nombreManuscrito(doc, r.entrenador, XR, H + 152.1, 17, 62, NEGRO)
-  lineaPunteada(doc, XR - 26, XR + 30, H + 154.1)
-  escribir(doc, 'Entrenador', H + 160, { x: XR, estilo: 'bold', tam: 8.5, color: NEGRO })
-  if (r.licencia) escribir(doc, `ENTRENADOR TSA LICENCIA S.O ${r.licencia}`, H + 165.6, { x: XR, tam: 7, color: NEGRO })
+  nombreManuscrito(doc, REPRESENTANTE_CENTRO, XR, H + 128.6, 21, 66, NEGRO)
+  lineaPunteada(doc, XR - 26, XR + 30, H + 130.6)
+  escribir(doc, 'Representante Legal', H + 136.4, { x: XR, estilo: 'bold', tam: 12, color: NEGRO })
+  nombreManuscrito(doc, r.entrenador, XR, H + 156.7, 21, 66, NEGRO)
+  lineaPunteada(doc, XR - 26, XR + 30, H + 158.7)
+  escribir(doc, 'Entrenador', H + 163.6, { x: XR, estilo: 'bold', tam: 12, color: NEGRO })
+  if (r.licencia) escribir(doc, `ENTRENADOR TSA LICENCIA S.O ${r.licencia}`, H + 168.6, { x: XR, tam: 10, color: NEGRO })
 }
 
 function plantillaMedalla(doc, c, p, r) {
   const d = p.disposicion
   let y = d.encabezado
   for (const linea of p.titulo) {
-    escribir(doc, linea, y, { estilo: 'bold', tam: 22, color: CAFE })
+    escribir(doc, linea, y, { estilo: 'bold', tam: 28, color: CAFE })
     y += 11.4
   }
-  escribir(doc, 'ALTURA MAMBUSCAY S.A.S', y - 1.4, { estilo: 'bold', tam: 11, color: CAFE })
-  escribir(doc, 'NIT: 901269652-6', y + 7.4, { tam: 7, color: CAFE })
-  escribir(doc, 'CON LICENCIA DE SALUD OCUPACIONAL (DSSA) 97325', y + 11.3, { tam: 7, color: CAFE })
+  escribir(doc, 'ALTURA MAMBUSCAY S.A.S', y - 1.4, { estilo: 'bold', tam: 16, color: CAFE })
+  escribir(doc, 'NIT: 901269652-6', y + 7.4, { tam: 9, color: CAFE })
+  escribir(doc, 'CON LICENCIA DE SALUD OCUPACIONAL (DSSA) 97325', y + 11.3, { tam: 9, color: CAFE })
 
   const H = d.cuerpo
-  escribir(doc, 'HACE CONSTAR QUE', H, { estilo: 'bold', tam: 8, color: CAFE })
+  escribir(doc, 'HACE CONSTAR QUE', H, { estilo: 'bold', tam: 11, color: CAFE })
   const nombre = (c.nombreCompleto ?? '').toUpperCase()
-  escribir(doc, nombre, H + 10.5, { familia: 'romana', tam: tamanoQueCabe(doc, nombre, 'romana', 19, 125), color: CAFE })
+  escribir(doc, nombre, H + 10.5, { familia: 'romana', tam: tamanoQueCabe(doc, nombre, 'romana', 22, 140), color: CAFE })
   doc.setDrawColor(CAFE)
   doc.setLineWidth(0.5)
   doc.line(CX - 45.5, H + 18.6, CX + 45.5, H + 18.6)
-  lineaDocumento(doc, c, H + 23.4, { color: CAFE })
-  escribir(doc, p.cursoAprobado, H + 30.8, { estilo: 'italic', tam: 8.5, color: CAFE })
-  y = escribir(doc, `Con una duración de ${horas(c, p)} horas`, H + 39, { estilo: 'italic', tam: 8.5, color: CAFE })
+  lineaDocumento(doc, c, H + 23.4, { color: CAFE, tam: 10 })
+  escribir(doc, p.cursoAprobado, H + 30.8, { estilo: 'italic', tam: 11, color: CAFE })
+  y = escribir(doc, `Con una duración de ${horas(c, p)} horas`, H + 39, { estilo: 'italic', tam: 11, color: CAFE })
 
   const datosEmpresa = [
     ['Empresa', c.empresa],
@@ -366,34 +373,34 @@ function plantillaMedalla(doc, c, p, r) {
   ].filter(([, valor]) => valor)
   if (p.empresaAlineada === 'centro') {
     for (const [etiqueta, valor] of datosEmpresa) {
-      y = escribir(doc, `${etiqueta}: ${valor ?? ''}`, y + 4.7, { estilo: 'italic', tam: 8.5, color: CAFE, ancho: 140 })
+      y = escribir(doc, `${etiqueta}: ${valor ?? ''}`, y + 4.7, { estilo: 'italic', tam: 11, color: CAFE, ancho: 150 })
     }
   }
-  y = escribir(doc, frasesFirma(c.fechaExpedicion, 'La Ceja (Antioquia)'), y + 12.8, { tam: 9, color: CAFE, ancho: 150 })
-  y = escribir(doc, `Código de certificación: ${c.numeroCertificado}`, y + 4.4, { tam: 7, color: CAFE })
+  y = escribir(doc, frasesFirma(c.fechaExpedicion, 'La Ceja (Antioquia)'), y + 12.8, { tam: 11, color: CAFE, ancho: 155 })
+  y = escribir(doc, `Código de certificación: ${c.numeroCertificado}`, y + 4.4, { tam: 9, color: CAFE })
   if (p.empresaAlineada === 'izquierda') {
     y += 3.8
     for (const [etiqueta, valor] of datosEmpresa) {
       y = escribir(doc, `${etiqueta.toUpperCase()}: ${(valor ?? '').toUpperCase()}`, y + 3.9, {
-        x: 31, alinear: 'left', estilo: 'bold', tam: 7, color: CAFE, ancho: 120,
+        x: 31, alinear: 'left', estilo: 'bold', tam: 9, color: CAFE, ancho: 150,
       })
     }
   }
-  const yAut = Math.max(y + 15, 208.6)
-  escribir(doc, AUTENTICIDAD, yAut, { tam: 8.5, color: NEGRO })
-  escribir(doc, CONTACTO, yAut + 4.3, { tam: 8.5, color: NEGRO })
+  const yAut = Math.max(y + 15, 216)
+  escribir(doc, AUTENTICIDAD, yAut, { tam: 10, color: NEGRO })
+  escribir(doc, CONTACTO, yAut + 4.3, { tam: 10, color: NEGRO })
 
   const XL = 52
   const XR = 168
   if (p.firmaRepresentante) firma(doc, r.firmaCentro, XL, 236, 32)
-  nombreManuscrito(doc, REPRESENTANTE_CENTRO, XL, 254, 17, 62, NEGRO)
+  nombreManuscrito(doc, REPRESENTANTE_CENTRO, XL, 254, 21, 66, NEGRO)
   lineaPunteada(doc, XL - 31, XL + 31, 256)
-  escribir(doc, 'Representante Legal o Delegado del', 262.5, { x: XL, estilo: 'bold', tam: 8.5, color: NEGRO })
-  escribir(doc, 'Centro de Capacitación', 267.3, { x: XL, estilo: 'bold', tam: 8.5, color: NEGRO })
+  escribir(doc, 'Representante Legal o Delegado del', 262.5, { x: XL, estilo: 'bold', tam: 12, color: NEGRO })
+  escribir(doc, 'Centro de Capacitación', 267.3, { x: XL, estilo: 'bold', tam: 12, color: NEGRO })
   firma(doc, r.firmaEntrenador, XR, 238, 32)
-  nombreManuscrito(doc, r.entrenador, XR, 263, 17, 62, NEGRO)
+  nombreManuscrito(doc, r.entrenador, XR, 263, 21, 66, NEGRO)
   lineaPunteada(doc, XR - 31, XR + 31, 265)
-  if (r.licencia) escribir(doc, `ENTRENADOR TSA LICENCIA S.O ${r.licencia}`, 270.5, { x: XR, tam: 7, color: NEGRO })
+  if (r.licencia) escribir(doc, `ENTRENADOR TSA LICENCIA S.O ${r.licencia}`, 270.5, { x: XR, tam: 10, color: NEGRO })
 }
 
 const ESTILOS = { ONAC: plantillaOnac, CINTA: plantillaCinta, MEDALLA: plantillaMedalla }
