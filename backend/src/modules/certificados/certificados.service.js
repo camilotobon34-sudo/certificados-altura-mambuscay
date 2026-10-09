@@ -1,6 +1,6 @@
 import { env } from '../../config/env.js';
 import { query, withTransaction } from '../../config/db.js';
-import { formatearNumeroCertificado, generarCodigoVerificacion } from '../../utils/codes.js';
+import { formatearCodigoCurso, formatearNumeroCertificado, generarCodigoVerificacion } from '../../utils/codes.js';
 import {
   ESTADOS,
   REENTRENAMIENTO_MIN_HORAS,
@@ -159,7 +159,7 @@ const registrarHistorial = (conn, { certificadoId, usuarioId, anterior, nuevo, o
 
 const cargarCurso = async (cursoId, { permitirInactivo = false } = {}) => {
   const [curso] = await query(
-    `SELECT cu.id, cu.activo, cu.intensidad_horaria, nf.codigo AS nivelCodigo,
+    `SELECT cu.id, cu.activo, cu.intensidad_horaria, cu.prefijo_codigo, nf.codigo AS nivelCodigo,
             nf.nombre AS nivelNombre, nf.intensidad_minima_horas, ta.codigo AS actividadCodigo
        FROM cursos cu
        LEFT JOIN niveles_formacion nf ON nf.id = cu.nivel_formacion_id
@@ -191,6 +191,18 @@ const esDuplicadoDe = (error, indice) =>
   error.code === 'ER_DUP_ENTRY' && String(error.sqlMessage ?? error.message).includes(indice);
 
 const NUMERO_DUPLICADO = 'Ya existe un certificado con ese número de certificado';
+
+// Consecutivo anual por curso. La fila queda bloqueada hasta el fin de la transacción, así dos
+// emisiones simultáneas no obtienen el mismo número y un fallo posterior no consume el consecutivo.
+const siguienteConsecutivo = async (conn, cursoId, anio) => {
+  await conn.query(
+    `INSERT INTO consecutivos_certificado (curso_id, anio, ultimo) VALUES (?, ?, LAST_INSERT_ID(1))
+     ON DUPLICATE KEY UPDATE ultimo = LAST_INSERT_ID(ultimo + 1)`,
+    [cursoId, anio],
+  );
+  const [[{ consecutivo }]] = await conn.query('SELECT LAST_INSERT_ID() AS consecutivo');
+  return Number(consecutivo);
+};
 
 export const emitir = async (datos, usuario) => {
   const [persona] = await query('SELECT id, activo FROM personas_certificadas WHERE id = ?', [
@@ -254,13 +266,24 @@ export const emitir = async (datos, usuario) => {
     if (!insertId) throw conflict('No fue posible generar un código único; intente de nuevo');
 
     if (!datos.numeroCertificado) {
-      const numero = formatearNumeroCertificado({
-        id: insertId,
-        codigoNivel: curso.nivelCodigo,
-        codigoActividad: curso.actividadCodigo,
-        anio,
-      });
-      await conn.query('UPDATE certificados SET numero_certificado = ? WHERE id = ?', [numero, insertId]);
+      const numero = curso.prefijo_codigo
+        ? formatearCodigoCurso({
+            prefijo: curso.prefijo_codigo,
+            anio,
+            consecutivo: await siguienteConsecutivo(conn, curso.id, anio),
+          })
+        : formatearNumeroCertificado({
+            id: insertId,
+            codigoNivel: curso.nivelCodigo,
+            codigoActividad: curso.actividadCodigo,
+            anio,
+          });
+      try {
+        await conn.query('UPDATE certificados SET numero_certificado = ? WHERE id = ?', [numero, insertId]);
+      } catch (error) {
+        if (esDuplicadoDe(error, 'uk_certificados_numero')) throw conflict(`El código ${numero} ya está en uso`);
+        throw error;
+      }
     }
     await registrarHistorial(conn, {
       certificadoId: insertId,

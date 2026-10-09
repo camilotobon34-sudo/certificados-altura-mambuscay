@@ -10,9 +10,18 @@ import { PageHeader } from '../../../components/ui/PageHeader.jsx'
 import { useApi } from '../../../hooks/useApi.js'
 import { useCatalogos } from '../../../hooks/useCatalogos.js'
 import { api } from '../../../lib/api.js'
-import { plantillaDeCurso } from '../../../lib/plantillas.js'
+import { PLANTILLAS, plantillaDeCurso } from '../../../lib/plantillas.js'
 
-const EMPTY = { nombre: '', nivelFormacionId: '', tipoActividadId: '', intensidadHoraria: '', descripcion: '', activo: true }
+const EMPTY = {
+  nombre: '',
+  prefijoCodigo: '',
+  nivelFormacionId: '',
+  tipoActividadId: '',
+  intensidadHoraria: '',
+  descripcion: '',
+  activo: true,
+}
+const anioCorto = String(new Date().getFullYear()).slice(-2)
 const REENTRENAMIENTO_MIN = 8
 
 // I-06: Curso — formulario con validación de intensidad mínima (HU-08).
@@ -29,6 +38,7 @@ export default function CursoFormPage() {
     const { curso } = await api.get(`/cursos/${id}`, undefined, { signal })
     setForm({
       nombre: curso.nombre,
+      prefijoCodigo: curso.prefijoCodigo ?? '',
       nivelFormacionId: curso.nivelFormacionId ? String(curso.nivelFormacionId) : '',
       tipoActividadId: String(curso.tipoActividadId),
       intensidadHoraria: String(curso.intensidadHoraria),
@@ -47,7 +57,9 @@ export default function CursoFormPage() {
   const esReentrenamiento = tipo?.codigo === 'REENTRENAMIENTO'
   const esOtraTarea = tipo?.codigo === 'OTRAS_TAREAS_ALTO_RIESGO'
   const minimo = esReentrenamiento ? REENTRENAMIENTO_MIN : esOtraTarea ? undefined : nivel?.intensidad_minima_horas
-  const plantilla = plantillaDeCurso({ tipoActividadCodigo: tipo?.codigo, nivelCodigo: nivel?.codigo, nombre: form.nombre })
+  const plantilla = plantillaDeCurso(form)
+  const prefijo = form.prefijoCodigo.trim().toUpperCase()
+  const ejemploCodigo = prefijo ? `${prefijo}${anioCorto}-0001` : null
 
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.type === 'checkbox' ? e.target.checked : e.target.value })
   const fieldErrors = error?.fieldErrors ?? {}
@@ -81,6 +93,29 @@ export default function CursoFormPage() {
           {error && !Object.keys(fieldErrors).length && <Alert tone="error" title={error.message} className="md:col-span-2" />}
           <div className="md:col-span-2">
             <Input label="Nombre del curso" required value={form.nombre} onChange={set('nombre')} error={fieldErrors.nombre} />
+          </div>
+          <div className="md:col-span-2">
+            <Input
+              label="Prefijo del código de certificación"
+              value={form.prefijoCodigo}
+              onChange={set('prefijoCodigo')}
+              error={fieldErrors.prefijoCodigo}
+              list="prefijos-plantillas"
+              className="font-mono uppercase"
+              placeholder="Ej. AUTORAM"
+              hint={
+                ejemploCodigo
+                  ? `Cada certificado de este curso tendrá su propio consecutivo anual: ${ejemploCodigo}, ${prefijo}${anioCorto}-0002…`
+                  : 'Identifica el curso y su plantilla. Sin prefijo se usa el número general MAM-….'
+              }
+            />
+            <datalist id="prefijos-plantillas">
+              {PLANTILLAS.map((p) => (
+                <option key={p.prefijoCodigo} value={p.prefijoCodigo}>
+                  {p.nombre}
+                </option>
+              ))}
+            </datalist>
           </div>
           <Select
             label="Tipo de actividad"
@@ -140,7 +175,10 @@ export default function CursoFormPage() {
             />
             <p className="font-semibold text-ink">{plantilla.nombre}</p>
             <p className="text-sm text-muted">
-              Código de certificación: <span className="font-mono">{plantilla.prefijoCodigo}…</span>
+              Próximo código:{' '}
+              <span className="font-mono font-semibold text-ink">
+                {existing.data?.prefijoCodigo === prefijo && existing.data?.proximoCodigo ? existing.data.proximoCodigo : ejemploCodigo}
+              </span>
             </p>
             <p className="text-sm text-muted">Entrenadores: {plantilla.entrenadores.join(', ')}</p>
             {existing.data && (
@@ -151,8 +189,7 @@ export default function CursoFormPage() {
           </div>
         ) : (
           <p className="text-sm text-muted">
-            Seleccione el tipo de actividad y el nivel para ver la plantilla que corresponde. Los niveles sin plantilla
-            oficial (Jefe de área, Entrenador) no tienen diseño asignado.
+            Escriba el prefijo del código (por ejemplo AUTORAM o ANDA) para asociar el curso con su plantilla oficial.
           </p>
         )}
       </Card>

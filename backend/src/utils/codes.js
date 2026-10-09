@@ -23,6 +23,12 @@ const PREFIJOS_ACTIVIDAD = {
   OTRAS_TAREAS_ALTO_RIESGO: 'AR',
 };
 
+// Código de certificación de las plantillas: prefijo del curso + año (2 dígitos) + consecutivo anual,
+// p. ej. AUTORAM26-0001 o C00RDAM-26-0001.
+export const formatearCodigoCurso = ({ prefijo, anio, consecutivo }) =>
+  `${prefijo}${String(anio).slice(-2)}-${String(consecutivo).padStart(4, '0')}`;
+
+// Respaldo para cursos sin prefijo propio.
 export const formatearNumeroCertificado = ({ id, codigoNivel, codigoActividad, anio }) => {
   const prefijo = PREFIJOS_ACTIVIDAD[codigoActividad] ?? PREFIJOS_NIVEL[codigoNivel] ?? 'GN';
   return `MAM-${prefijo}-${anio}-${String(id).padStart(6, '0')}`;

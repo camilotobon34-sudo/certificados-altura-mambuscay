@@ -175,11 +175,13 @@ function StepCurso({ cursoId, onSelect, vigentes }) {
           >
             <input type="radio" name="curso" className="mt-1 accent-primary" checked={cursoId === c.id} onChange={() => onSelect(c)} />
             <span>
-              <span className="block font-semibold text-ink">{tituloFormacion(c)}</span>
-              <span className="block text-sm text-muted">{c.nombre}</span>
+              <span className="block font-semibold text-ink">{c.nombre}</span>
+              {c.nivel && <span className="block text-sm text-muted">{tituloFormacion(c)}</span>}
               <span className="mt-2 inline-flex flex-wrap gap-2 text-xs">
-                <span className="rounded-full bg-surface px-2 py-0.5 font-medium">{c.tipoActividad}</span>
                 <span className="rounded-full bg-accent-soft px-2 py-0.5 font-medium text-warning">{c.intensidadHoraria} horas</span>
+                {c.prefijoCodigo && (
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 font-mono font-medium text-primary">{c.prefijoCodigo}</span>
+                )}
                 {vigente && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-warning-soft px-2 py-0.5 font-semibold text-warning">
                     <TriangleAlert className="size-3" aria-hidden="true" />
@@ -243,7 +245,11 @@ function StepFechas({ values, curso, onChange, errors }) {
           onChange={(e) => onChange({ ...values, numeroCertificado: e.target.value })}
           error={errors.numeroCertificado}
           placeholder="Déjelo vacío para asignarlo automáticamente"
-          hint="Si el centro ya tiene un consecutivo propio, regístrelo aquí; de lo contrario se asigna MAM-{nivel}-{año}-{consecutivo}."
+          hint={
+            curso?.proximoCodigo
+              ? `Si lo deja vacío se asigna el siguiente código del curso (${curso.proximoCodigo}).`
+              : 'Si lo deja vacío se asigna automáticamente.'
+          }
           className="font-mono uppercase"
         />
       </div>
@@ -261,7 +267,11 @@ function Resumen({ persona, curso, fechas }) {
     ['Intensidad horaria', `${fechas.intensidadHoraria} horas`],
     ['Fecha de expedición', formatDate(fechas.fechaExpedicion)],
     ['Fecha de vencimiento', formatDate(fechas.fechaVencimiento)],
-    ['Número de certificado', fechas.numeroCertificado.trim().toUpperCase() || 'Automático'],
+    [
+      'Número de certificado',
+      fechas.numeroCertificado.trim().toUpperCase() ||
+        (curso.proximoCodigo ? `${curso.proximoCodigo} (automático)` : 'Automático'),
+    ],
     ['Código de verificación', 'Automático y único (p. ej. 7K4P-X9QM-2RTD)'],
   ]
   return (

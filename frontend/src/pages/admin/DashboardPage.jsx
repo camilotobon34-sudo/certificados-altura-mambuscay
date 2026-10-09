@@ -19,7 +19,7 @@ const columns = [
   { key: 'persona', header: 'Persona', render: (r) => (
       <>
         <span className="block">{r.persona}</span>
-        <span className="text-xs text-muted">{tituloFormacion(r)}</span>
+        <span className="text-xs text-muted">{r.curso ?? tituloFormacion(r)}</span>
       </>
     ) },
   { key: 'fechaVencimiento', header: 'Vence', render: (r) => formatDate(r.fechaVencimiento), className: 'whitespace-nowrap' },

@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { query } from '../../config/db.js';
 import { validate } from '../../middlewares/validate.js';
 import { REENTRENAMIENTO_MIN_HORAS, TIPOS_ACTIVIDAD } from '../../utils/constants.js';
-import { badRequest, notFound } from '../../utils/http-error.js';
+import { formatearCodigoCurso } from '../../utils/codes.js';
+import { badRequest, conflict, notFound } from '../../utils/http-error.js';
 
 const router = Router();
 
@@ -13,11 +14,23 @@ const cursoSchema = z.object({
   tipoActividadId: z.coerce.number().int().positive('Seleccione el tipo de actividad'),
   intensidadHoraria: z.coerce.number().int().positive('La intensidad horaria debe ser mayor a 0'),
   descripcion: z.string().trim().max(2000).optional().nullable(),
+  prefijoCodigo: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z0-9][A-Z0-9-]{1,19}$/, 'Use solo letras, números y guiones (máx. 20)')
+    .optional()
+    .nullable()
+    .or(z.literal('').transform(() => null)),
   activo: z.boolean().optional().default(true),
 });
 
 const SELECT_CURSO = `
-  SELECT cu.id, cu.nombre, cu.nivel_formacion_id AS nivelFormacionId, nf.codigo AS nivelCodigo,
+  SELECT cu.id, cu.nombre, cu.prefijo_codigo AS prefijoCodigo,
+         (SELECT k.ultimo FROM consecutivos_certificado k
+           WHERE k.curso_id = cu.id AND k.anio = YEAR(CURDATE())) AS ultimoConsecutivo,
+         YEAR(CURDATE()) AS anioActual,
+         cu.nivel_formacion_id AS nivelFormacionId, nf.codigo AS nivelCodigo,
          nf.nombre AS nivel, nf.intensidad_minima_horas AS nivelIntensidadMinima,
          cu.tipo_actividad_id AS tipoActividadId, ta.codigo AS tipoActividadCodigo,
          ta.nombre AS tipoActividad, cu.intensidad_horaria AS intensidadHoraria,
@@ -27,7 +40,32 @@ const SELECT_CURSO = `
     LEFT JOIN niveles_formacion nf ON nf.id = cu.nivel_formacion_id
     JOIN tipos_actividad ta ON ta.id = cu.tipo_actividad_id`;
 
-const conConteo = (curso) => curso && { ...curso, certificadosEmitidos: Number(curso.certificadosEmitidos) };
+const conConteo = (curso) => {
+  if (!curso) return curso;
+  const { ultimoConsecutivo, anioActual, ...resto } = curso;
+  return {
+    ...resto,
+    certificadosEmitidos: Number(curso.certificadosEmitidos),
+    proximoCodigo: curso.prefijoCodigo
+      ? formatearCodigoCurso({
+          prefijo: curso.prefijoCodigo,
+          anio: anioActual,
+          consecutivo: Number(ultimoConsecutivo ?? 0) + 1,
+        })
+      : null,
+  };
+};
+
+const conPrefijoUnico = async (operacion) => {
+  try {
+    return await operacion();
+  } catch (error) {
+    if (error?.code === 'ER_DUP_ENTRY' && String(error.message).includes('uk_cursos_prefijo')) {
+      throw conflict('Ese prefijo de código ya lo usa otro curso');
+    }
+    throw error;
+  }
+};
 
 // Valida las intensidades mínimas de la Res. 4272 de 2021 (Art. 10 y Art. 27) y devuelve el
 // nivel que debe guardarse: las otras tareas de alto riesgo no son niveles de trabajo en alturas.
@@ -66,7 +104,7 @@ router.get('/', async (req, res) => {
   const soloActivos = req.query.activos === '1';
   const items = await query(
     `${SELECT_CURSO} ${soloActivos ? 'WHERE cu.activo = 1' : ''}
-      ORDER BY ta.id, nf.intensidad_minima_horas, cu.nombre`,
+      ORDER BY ta.id, nf.intensidad_minima_horas, cu.id`,
   );
   res.json({ items: items.map(conConteo) });
 });
@@ -80,10 +118,13 @@ router.get('/:id', async (req, res) => {
 router.post('/', validate(cursoSchema), async (req, res) => {
   const c = req.body;
   const nivelId = await validarReglasNormativas(c);
-  const result = await query(
-    `INSERT INTO cursos (nivel_formacion_id, tipo_actividad_id, nombre, intensidad_horaria, descripcion, activo)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [nivelId, c.tipoActividadId, c.nombre, c.intensidadHoraria, c.descripcion ?? null, c.activo],
+  const result = await conPrefijoUnico(() =>
+    query(
+      `INSERT INTO cursos
+         (nivel_formacion_id, tipo_actividad_id, nombre, prefijo_codigo, intensidad_horaria, descripcion, activo)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [nivelId, c.tipoActividadId, c.nombre, c.prefijoCodigo ?? null, c.intensidadHoraria, c.descripcion ?? null, c.activo],
+    ),
   );
   const [curso] = await query(`${SELECT_CURSO} WHERE cu.id = ?`, [result.insertId]);
   res.status(201).json({ curso: conConteo(curso) });
@@ -92,12 +133,17 @@ router.post('/', validate(cursoSchema), async (req, res) => {
 router.put('/:id', validate(cursoSchema), async (req, res) => {
   const c = req.body;
   const nivelId = await validarReglasNormativas(c);
-  const result = await query(
-    `UPDATE cursos
-        SET nivel_formacion_id = ?, tipo_actividad_id = ?, nombre = ?, intensidad_horaria = ?,
-            descripcion = ?, activo = ?
-      WHERE id = ?`,
-    [nivelId, c.tipoActividadId, c.nombre, c.intensidadHoraria, c.descripcion ?? null, c.activo, req.params.id],
+  const result = await conPrefijoUnico(() =>
+    query(
+      `UPDATE cursos
+          SET nivel_formacion_id = ?, tipo_actividad_id = ?, nombre = ?, prefijo_codigo = ?, intensidad_horaria = ?,
+              descripcion = ?, activo = ?
+        WHERE id = ?`,
+      [
+        nivelId, c.tipoActividadId, c.nombre, c.prefijoCodigo ?? null, c.intensidadHoraria,
+        c.descripcion ?? null, c.activo, req.params.id,
+      ],
+    ),
   );
   if (result.affectedRows === 0) throw notFound('Curso no encontrado');
   const [curso] = await query(`${SELECT_CURSO} WHERE cu.id = ?`, [req.params.id]);

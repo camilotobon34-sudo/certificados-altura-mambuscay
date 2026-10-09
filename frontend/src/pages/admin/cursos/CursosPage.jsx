@@ -1,25 +1,25 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { Award, BookOpen, BookPlus, ChevronDown, Clock, FileText, Layers, UserRound } from 'lucide-react'
+import { Award, BookOpen, BookPlus, ChevronDown, Clock, FileText, Hash, UserRound } from 'lucide-react'
 import { Button } from '../../../components/ui/Button.jsx'
 import { Card } from '../../../components/ui/Card.jsx'
 import { EmptyState, ErrorState, Spinner } from '../../../components/ui/Feedback.jsx'
 import { PageHeader } from '../../../components/ui/PageHeader.jsx'
 import { useApi } from '../../../hooks/useApi.js'
 import { api } from '../../../lib/api.js'
-import { GRUPOS_CURSO, plantillaDeCurso } from '../../../lib/plantillas.js'
+import { plantillaDeCurso } from '../../../lib/plantillas.js'
 
 function Miniatura({ plantilla, inactivo }) {
   if (!plantilla) {
     return (
-      <div className="flex aspect-[3/4] w-24 shrink-0 flex-col items-center justify-center gap-1 rounded-[var(--radius-control)] border border-dashed border-line bg-surface text-center text-[11px] text-muted sm:w-28">
+      <div className="flex aspect-[3/4] w-20 shrink-0 self-start flex-col items-center justify-center gap-1 rounded-[var(--radius-control)] border border-dashed border-line bg-surface text-center text-[11px] text-muted sm:w-28">
         <FileText className="size-6" aria-hidden="true" />
         Sin plantilla
       </div>
     )
   }
   return (
-    <div className="relative aspect-[3/4] w-24 shrink-0 overflow-hidden rounded-[var(--radius-control)] border border-line bg-white shadow-[var(--shadow-elevation-1)] sm:w-28">
+    <div className="relative aspect-[3/4] w-20 shrink-0 self-start overflow-hidden rounded-[var(--radius-control)] border border-line bg-white shadow-[var(--shadow-elevation-1)] sm:w-28">
       <img
         src={plantilla.fondo}
         alt={`Plantilla ${plantilla.nombre}`}
@@ -33,20 +33,36 @@ function Miniatura({ plantilla, inactivo }) {
   )
 }
 
-function CursoCard({ curso }) {
+function Dato({ icon: Icon, etiqueta, children }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <dt className="flex items-center gap-1 text-xs font-medium tracking-wide text-muted uppercase">
+        <Icon className="size-3.5" aria-hidden="true" />
+        {etiqueta}
+      </dt>
+      <dd className="text-sm font-semibold text-ink">{children}</dd>
+    </div>
+  )
+}
+
+function CursoCard({ curso, numero }) {
   const plantilla = plantillaDeCurso(curso)
   const inactivo = !curso.activo
   return (
     <Link
       to={`/admin/cursos/${curso.id}/editar`}
-      className={`group flex gap-4 rounded-[var(--radius-card)] border border-line bg-surface-elevated p-4 shadow-[var(--shadow-elevation-1)] transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[var(--shadow-elevation-2)] ${
+      aria-label={`Editar ${curso.nombre}`}
+      className={`group flex gap-4 rounded-[var(--radius-card)] border border-line bg-surface-elevated p-4 shadow-[var(--shadow-elevation-1)] transition hover:border-primary/40 hover:shadow-[var(--shadow-elevation-2)] sm:gap-6 sm:p-5 ${
         inactivo ? 'opacity-70' : ''
       }`}
     >
       <Miniatura plantilla={plantilla} inactivo={inactivo} />
-      <div className="flex min-w-0 flex-1 flex-col gap-2">
+      <div className="flex min-w-0 flex-1 flex-col gap-3">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="text-lg leading-snug text-ink group-hover:text-primary">{curso.nombre}</h3>
+          <div className="min-w-0">
+            {numero && <p className="text-xs font-semibold tracking-wide text-accent uppercase">Curso {numero}</p>}
+            <h2 className="text-xl leading-snug text-ink group-hover:text-primary">{curso.nombre}</h2>
+          </div>
           <span
             className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${
               inactivo ? 'bg-surface text-muted' : 'bg-success-soft text-success'
@@ -56,28 +72,20 @@ function CursoCard({ curso }) {
           </span>
         </div>
         {curso.descripcion && <p className="line-clamp-2 text-sm text-muted">{curso.descripcion}</p>}
-        <div className="mt-auto flex flex-wrap gap-2 pt-1 text-xs font-medium">
-          <span className="inline-flex items-center gap-1 rounded-full bg-accent-soft px-2 py-1 text-warning">
-            <Clock className="size-3.5" aria-hidden="true" />
-            {curso.intensidadHoraria} horas
-          </span>
-          {curso.nivel && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-primary">
-              <Layers className="size-3.5" aria-hidden="true" />
-              {curso.nivel}
-            </span>
-          )}
-          <span className="inline-flex items-center gap-1 rounded-full bg-surface px-2 py-1 text-ink">
-            <Award className="size-3.5" aria-hidden="true" />
-            {curso.certificadosEmitidos} {curso.certificadosEmitidos === 1 ? 'certificado' : 'certificados'}
-          </span>
-        </div>
-        {plantilla && (
-          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-            <UserRound className="size-3.5" aria-hidden="true" />
-            {plantilla.entrenadores.join(' · ')}
-          </p>
-        )}
+        <dl className="mt-auto grid grid-cols-1 gap-x-6 gap-y-3 border-t border-line pt-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Dato icon={Hash} etiqueta="Próximo código">
+            {curso.proximoCodigo ? (
+              <span className="font-mono whitespace-nowrap">{curso.proximoCodigo}</span>
+            ) : (
+              <span className="text-muted">Sin prefijo</span>
+            )}
+          </Dato>
+          <Dato icon={Clock} etiqueta="Intensidad">{curso.intensidadHoraria} horas</Dato>
+          <Dato icon={UserRound} etiqueta={plantilla?.entrenadores.length === 1 ? 'Entrenador' : 'Entrenadores'}>
+            {plantilla ? plantilla.entrenadores.join(', ') : <span className="text-muted">—</span>}
+          </Dato>
+          <Dato icon={Award} etiqueta="Certificados">{curso.certificadosEmitidos}</Dato>
+        </dl>
       </div>
     </Link>
   )
@@ -97,7 +105,7 @@ function Estadistica({ icon: Icon, valor, etiqueta }) {
   )
 }
 
-// I-05: Cursos — catálogo agrupado por tipo de formación, con la plantilla de cada curso (HU-08).
+// I-05: Cursos — cada curso por separado, con su plantilla, código y entrenadores (HU-08).
 export default function CursosPage() {
   const { data, error, loading, reload } = useApi((signal) => api.get('/cursos', undefined, { signal }))
   const [verInactivos, setVerInactivos] = useState(false)
@@ -112,7 +120,7 @@ export default function CursosPage() {
     <>
       <PageHeader
         title="Cursos"
-        description="Oferta de formación de Altura Mambuscay. Cada curso usa su plantilla oficial de certificado."
+        description="Cada curso tiene su propia plantilla de certificado, su código y su consecutivo anual."
         actions={<Button to="/admin/cursos/nuevo" icon={BookPlus}>Nuevo curso</Button>}
       />
 
@@ -133,25 +141,11 @@ export default function CursosPage() {
             </Card>
           )}
 
-          {GRUPOS_CURSO.map((grupo) => {
-            const delGrupo = activos.filter((c) => c.tipoActividadCodigo === grupo.codigo)
-            if (delGrupo.length === 0) return null
-            return (
-              <section key={grupo.codigo} aria-labelledby={`grupo-${grupo.codigo}`}>
-                <header className="mb-3 flex flex-wrap items-baseline justify-between gap-2 border-b-2 border-accent/60 pb-2">
-                  <h2 id={`grupo-${grupo.codigo}`} className="text-xl text-primary">
-                    {grupo.titulo}
-                  </h2>
-                  <p className="text-sm text-muted">{grupo.descripcion}</p>
-                </header>
-                <div className="grid gap-4 xl:grid-cols-2">
-                  {delGrupo.map((curso) => (
-                    <CursoCard key={curso.id} curso={curso} />
-                  ))}
-                </div>
-              </section>
-            )
-          })}
+          <div className="flex flex-col gap-4">
+            {activos.map((curso, i) => (
+              <CursoCard key={curso.id} curso={curso} numero={i + 1} />
+            ))}
+          </div>
 
           {inactivos.length > 0 && (
             <section>
@@ -165,7 +159,7 @@ export default function CursosPage() {
                 Cursos inactivos ({inactivos.length})
               </button>
               {verInactivos && (
-                <div className="grid gap-4 xl:grid-cols-2">
+                <div className="flex flex-col gap-4">
                   {inactivos.map((curso) => (
                     <CursoCard key={curso.id} curso={curso} />
                   ))}
