@@ -139,7 +139,7 @@ function Formulario({ certificado: c, cursos }) {
             </div>
           </div>
           <div className="md:col-span-2">
-            <h3 className="mb-3 border-t border-line pt-4 font-semibold text-ink">Empresa y entrenador (salen en el certificado)</h3>
+            <div className="mb-4 border-t border-line" />
             <DatosPlantillaFields
               values={plantilla}
               curso={cursoElegido}

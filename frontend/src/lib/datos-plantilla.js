@@ -34,7 +34,8 @@ export const fechasFormacionSugeridas = (fechaExpedicion, horas) => {
 
 // Empresa, NIT, representante y ARL del último certificado de la persona (suele ser la misma empresa).
 export const empresaDeUltimoCertificado = (certificados = []) => {
-  const ultimo = certificados.find((c) => c.empresa)
+  // Altura Mambuscay es el centro de capacitación, nunca el empleador: ese dato se escribió por error.
+  const ultimo = certificados.find((c) => c.empresa && !/mambuscay/i.test(c.empresa))
   if (!ultimo) return {}
   return {
     empresa: ultimo.empresa ?? '',

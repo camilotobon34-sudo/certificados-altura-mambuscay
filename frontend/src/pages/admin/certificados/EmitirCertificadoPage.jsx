@@ -27,7 +27,7 @@ import {
 import { addMonthsIso, formatDate, formatLongDate, fullName, tituloFormacion, todayIso } from '../../../lib/format.js'
 import { verificationUrl } from '../../../lib/verification.js'
 
-const STEPS = ['Persona', 'Curso y nivel', 'Fechas e intensidad', 'Empresa y entrenador', 'Revisión']
+const STEPS = ['Persona', 'Curso y nivel', 'Fechas e intensidad', 'Empresa del trabajador', 'Revisión']
 const REVISION = STEPS.length - 1
 const FECHAS_INICIALES = () => ({ fechaExpedicion: todayIso(), fechaVencimiento: '', intensidadHoraria: '', numeroCertificado: '' })
 const REENTRENAMIENTO_MIN = 8
@@ -289,7 +289,11 @@ function Resumen({ persona, curso, fechas, plantilla }) {
         (curso.proximoCodigo ? `${curso.proximoCodigo} (automático)` : 'Automático'),
     ],
     ['Código de verificación', 'Automático y único (p. ej. 7K4P-X9QM-2RTD)'],
-    ['Empresa (empleador)', [plantilla.empresa, plantilla.nitEmpresa && `NIT ${plantilla.nitEmpresa}`].filter(Boolean).join(' · ')],
+    [
+      'Empresa donde trabaja',
+      [plantilla.empresa, plantilla.nitEmpresa && `NIT ${plantilla.nitEmpresa}`].filter(Boolean).join(' · ') ||
+        'Independiente (no sale en el certificado)',
+    ],
     [
       'Representante legal',
       [plantilla.representanteLegal, plantilla.documentoRepresentante && `CC ${plantilla.documentoRepresentante}`]
@@ -327,6 +331,7 @@ export default function EmitirCertificadoPage() {
   const [emitido, setEmitido] = useState(null)
   const [confirmaDuplicado, setConfirmaDuplicado] = useState(false)
   const [alertaDuplicado, setAlertaDuplicado] = useState(false)
+  const [empresaCopiada, setEmpresaCopiada] = useState(false)
 
   const reset = () => {
     setAlertaDuplicado(false)
@@ -339,6 +344,7 @@ export default function EmitirCertificadoPage() {
     setSubmitError('')
     setEmitido(null)
     setConfirmaDuplicado(false)
+    setEmpresaCopiada(false)
   }
 
   useApi(async (signal) => {
@@ -406,9 +412,11 @@ export default function EmitirCertificadoPage() {
     if (step === 2 && !validateFechas()) return
     if (step === 3 && !validatePlantilla()) return
     if (step === 2) {
+      const anterior = plantilla.empresa ? {} : empresaDeUltimoCertificado(historial.data?.certificados)
+      if (anterior.empresa) setEmpresaCopiada(true)
       setPlantilla((v) => ({
         ...v,
-        ...(v.empresa ? {} : empresaDeUltimoCertificado(historial.data?.certificados)),
+        ...anterior,
         arl: v.arl || ARL_POR_DEFECTO,
         ...(v.fechaInicioFormacion || v.fechaFinFormacion
           ? {}
@@ -466,7 +474,7 @@ export default function EmitirCertificadoPage() {
                   Emitir otro
                 </Button>
               </div>
-              <GuardarCertificadoButton constancia={constanciaDesdeInterno(emitido)} className="mt-4 max-w-sm" />
+              <GuardarCertificadoButton constancia={constanciaDesdeInterno(emitido)} automatico className="mt-4 max-w-sm" />
             </div>
             <QRBlock codigo={emitido.codigoVerificacion} numero={emitido.numeroCertificado} />
           </div>
@@ -499,6 +507,7 @@ export default function EmitirCertificadoPage() {
             onChange={setPlantilla}
             errors={errors}
             onClearError={(campo) => setErrors((e) => ({ ...e, [campo]: undefined }))}
+            empresaCopiada={empresaCopiada}
           />
         )}
         {step === REVISION && (
