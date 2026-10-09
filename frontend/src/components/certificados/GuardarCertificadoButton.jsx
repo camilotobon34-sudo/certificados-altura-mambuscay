@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { FileDown } from 'lucide-react'
 import { Button } from '../ui/Button.jsx'
+import { plantillaDeCurso } from '../../lib/plantillas.js'
 
 // El generador de PDF se carga bajo demanda para no pesar en la consulta pública.
 export function GuardarCertificadoButton({ constancia, variant = 'accent', size = 'md', className = '' }) {
@@ -11,8 +12,13 @@ export function GuardarCertificadoButton({ constancia, variant = 'accent', size 
     setSaving(true)
     setError('')
     try {
-      const { descargarConstanciaPdf } = await import('../../lib/constancia-pdf.js')
-      await descargarConstanciaPdf(constancia)
+      if (plantillaDeCurso(constancia)) {
+        const { descargarCertificadoPdf } = await import('../../lib/certificado-pdf.js')
+        await descargarCertificadoPdf(constancia)
+      } else {
+        const { descargarConstanciaPdf } = await import('../../lib/constancia-pdf.js')
+        await descargarConstanciaPdf(constancia)
+      }
     } catch {
       setError('No fue posible generar el certificado. Revise su conexión e intente de nuevo.')
     } finally {

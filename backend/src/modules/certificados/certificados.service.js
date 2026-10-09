@@ -100,6 +100,10 @@ export const obtenerDetalle = async (id, { incluirInterno = true } = {}) => {
             c.codigo_verificacion AS codigoVerificacion, c.url_verificacion AS urlVerificacion,
             c.fecha_expedicion AS fechaExpedicion, c.fecha_vencimiento AS fechaVencimiento,
             c.intensidad_horaria AS intensidadHoraria, c.estado AS estadoRegistrado,
+            c.empresa, c.nit_empresa AS nitEmpresa, c.representante_legal AS representanteLegal,
+            c.documento_representante AS documentoRepresentante, c.arl,
+            c.fecha_inicio_formacion AS fechaInicioFormacion, c.fecha_fin_formacion AS fechaFinFormacion,
+            c.entrenador, cu.prefijo_codigo AS prefijoCodigo,
             ${estadoEfectivoSql('c')} AS estado, c.observacion_suspension AS observacionSuspension,
             c.creado_en AS creadoEn,
             p.id AS personaId, p.nombres, p.apellidos, td.codigo AS tipoDocumento,
@@ -187,6 +191,25 @@ const validarIntensidadYFechas = (curso, intensidad, { fechaExpedicion, fechaVen
   }
 };
 
+const validarFechasFormacion = ({ fechaInicioFormacion, fechaFinFormacion }) => {
+  if (fechaInicioFormacion && fechaFinFormacion && fechaFinFormacion < fechaInicioFormacion) {
+    throw badRequest('La fecha final de la formación no puede ser anterior a la inicial');
+  }
+};
+
+const COLUMNAS_PLANTILLA = {
+  empresa: 'empresa',
+  nit_empresa: 'nitEmpresa',
+  representante_legal: 'representanteLegal',
+  documento_representante: 'documentoRepresentante',
+  arl: 'arl',
+  fecha_inicio_formacion: 'fechaInicioFormacion',
+  fecha_fin_formacion: 'fechaFinFormacion',
+  entrenador: 'entrenador',
+};
+
+const valoresPlantilla = (datos) => Object.values(COLUMNAS_PLANTILLA).map((campo) => datos[campo] ?? null);
+
 const esDuplicadoDe = (error, indice) =>
   error.code === 'ER_DUP_ENTRY' && String(error.sqlMessage ?? error.message).includes(indice);
 
@@ -214,6 +237,7 @@ export const emitir = async (datos, usuario) => {
   const curso = await cargarCurso(datos.cursoId);
   const intensidad = datos.intensidadHoraria ?? curso.intensidad_horaria;
   validarIntensidadYFechas(curso, intensidad, datos);
+  validarFechasFormacion(datos);
 
   // Evita emitir dos veces el mismo curso cuando la empresa reenvía a la persona.
   if (!datos.confirmarDuplicado) {
@@ -249,12 +273,14 @@ export const emitir = async (datos, usuario) => {
         const [result] = await conn.query(
           `INSERT INTO certificados
              (persona_id, curso_id, emitido_por_usuario_id, numero_certificado, codigo_verificacion,
-              url_verificacion, fecha_expedicion, fecha_vencimiento, intensidad_horaria, estado)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              url_verificacion, fecha_expedicion, fecha_vencimiento, intensidad_horaria, estado,
+              ${Object.keys(COLUMNAS_PLANTILLA).join(', ')})
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             datos.personaId, datos.cursoId, usuario.id, datos.numeroCertificado ?? codigo, codigo,
             `${baseUrl}/${codigo}`, datos.fechaExpedicion,
             datos.fechaVencimiento, intensidad, estadoInicial,
+            ...valoresPlantilla(datos),
           ],
         );
         insertId = result.insertId;
@@ -304,6 +330,14 @@ const CAMPOS_EDITABLES = {
   intensidad_horaria: 'intensidad horaria',
   fecha_expedicion: 'fecha de expedición',
   fecha_vencimiento: 'fecha de vencimiento',
+  empresa: 'empresa',
+  nit_empresa: 'NIT de la empresa',
+  representante_legal: 'representante legal',
+  documento_representante: 'documento del representante',
+  arl: 'ARL',
+  fecha_inicio_formacion: 'fecha de inicio de la formación',
+  fecha_fin_formacion: 'fecha de fin de la formación',
+  entrenador: 'entrenador',
 };
 
 // Edición de datos (solo Administrador). El código de verificación y la persona no cambian.
@@ -311,7 +345,8 @@ export const actualizar = async (id, datos, usuario) => {
   await withTransaction(async (conn) => {
     const [[actual]] = await conn.query(
       `SELECT c.id, c.estado, c.numero_certificado, c.curso_id, c.intensidad_horaria,
-              c.fecha_expedicion, c.fecha_vencimiento, ${estadoEfectivoSql('c')} AS efectivo
+              c.fecha_expedicion, c.fecha_vencimiento, ${Object.keys(COLUMNAS_PLANTILLA).join(', ')},
+              ${estadoEfectivoSql('c')} AS efectivo
          FROM certificados c WHERE c.id = ? FOR UPDATE`,
       [id],
     );
@@ -320,6 +355,7 @@ export const actualizar = async (id, datos, usuario) => {
 
     const curso = await cargarCurso(datos.cursoId, { permitirInactivo: datos.cursoId === actual.curso_id });
     validarIntensidadYFechas(curso, datos.intensidadHoraria, datos);
+    validarFechasFormacion(datos);
 
     const nuevos = {
       numero_certificado: datos.numeroCertificado ?? actual.numero_certificado,
@@ -327,8 +363,11 @@ export const actualizar = async (id, datos, usuario) => {
       intensidad_horaria: datos.intensidadHoraria,
       fecha_expedicion: datos.fechaExpedicion,
       fecha_vencimiento: datos.fechaVencimiento,
+      ...Object.fromEntries(Object.entries(COLUMNAS_PLANTILLA).map(([col, campo]) => [col, datos[campo] ?? null])),
     };
-    const cambios = Object.keys(CAMPOS_EDITABLES).filter((campo) => String(nuevos[campo]) !== String(actual[campo]));
+    const cambios = Object.keys(CAMPOS_EDITABLES).filter(
+      (campo) => String(nuevos[campo] ?? '') !== String(actual[campo] ?? ''),
+    );
     if (cambios.length === 0) return;
 
     const [[{ hoy }]] = await conn.query('SELECT CURDATE() AS hoy');
@@ -339,8 +378,7 @@ export const actualizar = async (id, datos, usuario) => {
     try {
       await conn.query(
         `UPDATE certificados
-            SET numero_certificado = ?, curso_id = ?, intensidad_horaria = ?,
-                fecha_expedicion = ?, fecha_vencimiento = ?, estado = ?
+            SET ${Object.keys(nuevos).map((col) => `${col} = ?`).join(', ')}, estado = ?
           WHERE id = ?`,
         [...Object.values(nuevos), estado, id],
       );

@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { ArrowLeft, ArrowRight, CircleCheck, Eye, FilePlus2, Search, TriangleAlert, UserPlus } from 'lucide-react'
+import { DatosPlantillaFields } from '../../../components/certificados/DatosPlantillaFields.jsx'
+import { GuardarCertificadoButton } from '../../../components/certificados/GuardarCertificadoButton.jsx'
 import { QRBlock } from '../../../components/certificados/QRBlock.jsx'
 import { Alert } from '../../../components/ui/Alert.jsx'
 import { Button } from '../../../components/ui/Button.jsx'
@@ -12,10 +14,18 @@ import { PageHeader } from '../../../components/ui/PageHeader.jsx'
 import { Stepper } from '../../../components/ui/Stepper.jsx'
 import { useApi } from '../../../hooks/useApi.js'
 import { api } from '../../../lib/api.js'
+import { constanciaDesdeInterno } from '../../../lib/constancia.js'
+import {
+  DATOS_PLANTILLA_VACIOS,
+  datosPlantillaParaApi,
+  entrenadorPorDefecto,
+  validarDatosPlantilla,
+} from '../../../lib/datos-plantilla.js'
 import { addMonthsIso, formatDate, formatLongDate, fullName, tituloFormacion, todayIso } from '../../../lib/format.js'
 import { verificationUrl } from '../../../lib/verification.js'
 
-const STEPS = ['Persona', 'Curso y nivel', 'Fechas e intensidad', 'Revisión']
+const STEPS = ['Persona', 'Curso y nivel', 'Fechas e intensidad', 'Empresa y entrenador', 'Revisión']
+const REVISION = STEPS.length - 1
 const FECHAS_INICIALES = () => ({ fechaExpedicion: todayIso(), fechaVencimiento: '', intensidadHoraria: '', numeroCertificado: '' })
 const REENTRENAMIENTO_MIN = 8
 
@@ -257,7 +267,10 @@ function StepFechas({ values, curso, onChange, errors }) {
   )
 }
 
-function Resumen({ persona, curso, fechas }) {
+const rangoFormacion = ({ fechaInicioFormacion: i, fechaFinFormacion: f }) =>
+  i && f && i !== f ? `${formatDate(i)} al ${formatDate(f)}` : i || f ? formatDate(i || f) : '—'
+
+function Resumen({ persona, curso, fechas, plantilla }) {
   const rows = [
     ['Persona certificada', fullName(persona)],
     ['Documento', `${persona.tipoDocumento} ${persona.numeroDocumento}`],
@@ -273,6 +286,16 @@ function Resumen({ persona, curso, fechas }) {
         (curso.proximoCodigo ? `${curso.proximoCodigo} (automático)` : 'Automático'),
     ],
     ['Código de verificación', 'Automático y único (p. ej. 7K4P-X9QM-2RTD)'],
+    ['Empresa (empleador)', [plantilla.empresa, plantilla.nitEmpresa && `NIT ${plantilla.nitEmpresa}`].filter(Boolean).join(' · ')],
+    [
+      'Representante legal',
+      [plantilla.representanteLegal, plantilla.documentoRepresentante && `CC ${plantilla.documentoRepresentante}`]
+        .filter(Boolean)
+        .join(' · ') || '—',
+    ],
+    ['ARL', plantilla.arl],
+    ['Formación realizada', rangoFormacion(plantilla)],
+    ['Entrenador', plantilla.entrenador || '—'],
   ]
   return (
     <dl className="divide-y divide-line rounded-[var(--radius-control)] border border-line">
@@ -294,6 +317,7 @@ export default function EmitirCertificadoPage() {
   const [persona, setPersona] = useState(null)
   const [curso, setCurso] = useState(null)
   const [fechas, setFechas] = useState(FECHAS_INICIALES)
+  const [plantilla, setPlantilla] = useState(DATOS_PLANTILLA_VACIOS)
   const [errors, setErrors] = useState({})
   const [submitError, setSubmitError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -307,6 +331,7 @@ export default function EmitirCertificadoPage() {
     setPersona(null)
     setCurso(null)
     setFechas(FECHAS_INICIALES())
+    setPlantilla(DATOS_PLANTILLA_VACIOS)
     setErrors({})
     setSubmitError('')
     setEmitido(null)
@@ -338,6 +363,7 @@ export default function EmitirCertificadoPage() {
     setConfirmaDuplicado(false)
     setAlertaDuplicado(Boolean(vigenteDe(c)))
     setFechas((f) => ({ ...f, intensidadHoraria: String(c.intensidadHoraria) }))
+    setPlantilla((v) => ({ ...v, entrenador: entrenadorPorDefecto(c) }))
   }
 
   const sacarDeTodosModos = () => {
@@ -361,7 +387,13 @@ export default function EmitirCertificadoPage() {
     return Object.keys(next).length === 0
   }
 
-  const canContinue = [Boolean(persona), Boolean(curso), true, true][step]
+  const validatePlantilla = () => {
+    const next = validarDatosPlantilla(plantilla)
+    setErrors(next)
+    return Object.keys(next).length === 0
+  }
+
+  const canContinue = [Boolean(persona), Boolean(curso), true, true, true][step]
 
   const next = () => {
     if (step === 1 && duplicado && !confirmaDuplicado) {
@@ -369,7 +401,11 @@ export default function EmitirCertificadoPage() {
       return
     }
     if (step === 2 && !validateFechas()) return
-    setStep((s) => Math.min(s + 1, STEPS.length - 1))
+    if (step === 3 && !validatePlantilla()) return
+    if (step === 2 && !plantilla.fechaFinFormacion) {
+      setPlantilla((v) => ({ ...v, fechaFinFormacion: fechas.fechaExpedicion }))
+    }
+    setStep((s) => Math.min(s + 1, REVISION))
   }
 
   const emitir = async () => {
@@ -384,10 +420,11 @@ export default function EmitirCertificadoPage() {
         intensidadHoraria: Number(fechas.intensidadHoraria),
         numeroCertificado: fechas.numeroCertificado.trim() || undefined,
         confirmarDuplicado: confirmaDuplicado,
+        ...datosPlantillaParaApi(plantilla),
       })
       setEmitido(result.certificado)
     } catch (err) {
-      setSubmitError(err.fieldErrors?.numeroCertificado ?? err.message)
+      setSubmitError(Object.values(err.fieldErrors ?? {})[0] ?? err.message)
     } finally {
       setSubmitting(false)
     }
@@ -419,6 +456,7 @@ export default function EmitirCertificadoPage() {
                   Emitir otro
                 </Button>
               </div>
+              <GuardarCertificadoButton constancia={constanciaDesdeInterno(emitido)} className="mt-4 max-w-sm" />
             </div>
             <QRBlock codigo={emitido.codigoVerificacion} numero={emitido.numeroCertificado} />
           </div>
@@ -445,6 +483,15 @@ export default function EmitirCertificadoPage() {
         {step === 1 && <StepCurso cursoId={curso?.id} onSelect={selectCurso} vigentes={vigentes} />}
         {step === 2 && <StepFechas values={fechas} curso={curso} onChange={setFechas} errors={errors} />}
         {step === 3 && (
+          <DatosPlantillaFields
+            values={plantilla}
+            curso={curso}
+            onChange={setPlantilla}
+            errors={errors}
+            onClearError={(campo) => setErrors((e) => ({ ...e, [campo]: undefined }))}
+          />
+        )}
+        {step === REVISION && (
           <div className="flex flex-col gap-4">
             {duplicado && (
               <Alert tone="warning" title="Se sacará de todos modos">
@@ -455,7 +502,7 @@ export default function EmitirCertificadoPage() {
                 de este curso, sacado el {formatLongDate(duplicado.fechaExpedicion)}.
               </Alert>
             )}
-            <Resumen persona={persona} curso={curso} fechas={fechas} />
+            <Resumen persona={persona} curso={curso} fechas={fechas} plantilla={plantilla} />
             <p className="text-sm text-muted">
               Al emitir, el sistema generará el código único de consulta y el código QR. El titular consultará su certificado
               con su tipo y número de documento más este código.
@@ -474,7 +521,7 @@ export default function EmitirCertificadoPage() {
               Cancelar
             </Link>
           )}
-          {step < STEPS.length - 1 ? (
+          {step < REVISION ? (
             <Button iconRight={ArrowRight} onClick={next} disabled={!canContinue}>
               Continuar
             </Button>

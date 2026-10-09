@@ -216,6 +216,19 @@ export default function CertificadoDetallePage() {
               <Info label="Número de certificado" mono>{c.numeroCertificado}</Info>
               <Info label="Código de verificación" mono>{c.codigoVerificacion}</Info>
               <Info label="Emitido por">{c.emitidoPor}</Info>
+              <Info label="Empresa (empleador)">
+                {[c.empresa, c.nitEmpresa && `NIT ${c.nitEmpresa}`].filter(Boolean).join(' · ') || '—'}
+              </Info>
+              <Info label="Representante legal">
+                {[c.representanteLegal, c.documentoRepresentante && `CC ${c.documentoRepresentante}`].filter(Boolean).join(' · ') || '—'}
+              </Info>
+              <Info label="ARL">{c.arl || '—'}</Info>
+              <Info label="Formación realizada">
+                {c.fechaInicioFormacion && c.fechaFinFormacion && c.fechaInicioFormacion !== c.fechaFinFormacion
+                  ? `${formatDate(c.fechaInicioFormacion)} al ${formatDate(c.fechaFinFormacion)}`
+                  : formatDate(c.fechaInicioFormacion || c.fechaFinFormacion)}
+              </Info>
+              <Info label="Entrenador">{c.entrenador || '—'}</Info>
             </dl>
             {suspendido && c.observacionSuspension && (
               <Alert tone="info" title="Observación de la suspensión (interna)" className="mt-5">

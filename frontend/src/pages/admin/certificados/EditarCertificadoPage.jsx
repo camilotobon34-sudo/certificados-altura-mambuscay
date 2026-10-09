@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { Save } from 'lucide-react'
+import { DatosPlantillaFields } from '../../../components/certificados/DatosPlantillaFields.jsx'
 import { Alert } from '../../../components/ui/Alert.jsx'
 import { Button } from '../../../components/ui/Button.jsx'
 import { Card } from '../../../components/ui/Card.jsx'
@@ -10,6 +11,12 @@ import { PageHeader } from '../../../components/ui/PageHeader.jsx'
 import { StatusBadge } from '../../../components/ui/StatusBadge.jsx'
 import { useApi } from '../../../hooks/useApi.js'
 import { api } from '../../../lib/api.js'
+import {
+  datosPlantillaDe,
+  datosPlantillaParaApi,
+  entrenadorPorDefecto,
+  validarDatosPlantilla,
+} from '../../../lib/datos-plantilla.js'
 import { addMonthsIso, fullName, tituloFormacion } from '../../../lib/format.js'
 
 function Formulario({ certificado: c, cursos }) {
@@ -22,6 +29,11 @@ function Formulario({ certificado: c, cursos }) {
     fechaVencimiento: c.fechaVencimiento,
     observacion: '',
   })
+  const [plantilla, setPlantilla] = useState(() => ({
+    ...datosPlantillaDe(c),
+    entrenador: c.entrenador ?? entrenadorPorDefecto(c),
+  }))
+  const cursoElegido = cursos.find((cu) => String(cu.id) === form.cursoId)
   const [errors, setErrors] = useState({})
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -38,6 +50,11 @@ function Formulario({ certificado: c, cursos }) {
 
   const submit = async (event) => {
     event.preventDefault()
+    const erroresPlantilla = validarDatosPlantilla(plantilla, { exigir: false })
+    if (Object.keys(erroresPlantilla).length) {
+      setErrors(erroresPlantilla)
+      return
+    }
     setSaving(true)
     setError('')
     try {
@@ -45,6 +62,7 @@ function Formulario({ certificado: c, cursos }) {
         ...form,
         cursoId: Number(form.cursoId),
         intensidadHoraria: Number(form.intensidadHoraria),
+        ...datosPlantillaParaApi(plantilla),
       })
       navigate(`/admin/certificados/${c.id}`, { state: { aviso: 'Datos del certificado actualizados.' } })
     } catch (err) {
@@ -110,6 +128,17 @@ function Formulario({ certificado: c, cursos }) {
                 </button>
               ))}
             </div>
+          </div>
+          <div className="md:col-span-2">
+            <h3 className="mb-3 border-t border-line pt-4 font-semibold text-ink">Empresa y entrenador (salen en el certificado)</h3>
+            <DatosPlantillaFields
+              values={plantilla}
+              curso={cursoElegido}
+              onChange={setPlantilla}
+              errors={errors}
+              onClearError={(campo) => setErrors((e) => ({ ...e, [campo]: undefined }))}
+              requeridos={false}
+            />
           </div>
           <div className="md:col-span-2">
             <Textarea

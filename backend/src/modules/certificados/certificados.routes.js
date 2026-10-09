@@ -34,6 +34,35 @@ const numeroCertificado = z
       .optional(),
   );
 
+const textoOpcional = (max) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .optional()
+    .nullable()
+    .transform((v) => v || null);
+
+const fechaOpcional = (mensaje) =>
+  z
+    .string()
+    .optional()
+    .nullable()
+    .transform((v) => v || null)
+    .pipe(z.iso.date(mensaje).nullable());
+
+// Datos que imprime la plantilla oficial del curso.
+const datosPlantilla = {
+  empresa: textoOpcional(200),
+  nitEmpresa: textoOpcional(30),
+  representanteLegal: textoOpcional(150),
+  documentoRepresentante: textoOpcional(30),
+  arl: textoOpcional(100),
+  fechaInicioFormacion: fechaOpcional('Fecha de inicio de la formación inválida'),
+  fechaFinFormacion: fechaOpcional('Fecha de fin de la formación inválida'),
+  entrenador: textoOpcional(150),
+};
+
 const emitirSchema = z.object({
   personaId: z.coerce.number().int().positive('Seleccione la persona certificada'),
   cursoId: z.coerce.number().int().positive('Seleccione el curso'),
@@ -42,6 +71,7 @@ const emitirSchema = z.object({
   intensidadHoraria: z.coerce.number().int().positive().optional(),
   numeroCertificado,
   confirmarDuplicado: z.boolean().optional().default(false),
+  ...datosPlantilla,
 });
 
 const actualizarSchema = z.object({
@@ -51,6 +81,7 @@ const actualizarSchema = z.object({
   intensidadHoraria: z.coerce.number().int().positive('La intensidad horaria debe ser mayor a 0'),
   numeroCertificado,
   observacion: z.string().trim().max(500).optional(),
+  ...datosPlantilla,
 });
 
 const suspenderSchema = z.object({

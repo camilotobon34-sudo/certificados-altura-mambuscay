@@ -53,7 +53,9 @@ router.post('/consulta', consultaLimiter, validate(consultaSchema), async (req, 
             c.fecha_expedicion, c.fecha_vencimiento, c.intensidad_horaria,
             ${estadoEfectivoSql('c')} AS estado, cu.nombre AS curso,
             nf.nombre AS nivel_formacion, ta.nombre AS tipo_actividad,
-            cc.razon_social AS centro_formacion,
+            cc.razon_social AS centro_formacion, cu.prefijo_codigo,
+            c.empresa, c.nit_empresa, c.representante_legal, c.documento_representante, c.arl,
+            c.fecha_inicio_formacion, c.fecha_fin_formacion, c.entrenador,
             CONCAT(p.nombres, ' ', p.apellidos) AS nombre_completo,
             td.codigo AS tipo_documento, td.nombre AS tipo_documento_nombre, p.numero_documento
        FROM certificados c
@@ -71,9 +73,9 @@ router.post('/consulta', consultaLimiter, validate(consultaSchema), async (req, 
   res.set('Cache-Control', 'no-store');
   if (!fila) throw notFound(NO_VERIFICADO);
 
-  const { numero_documento: numero, ...certificado } = fila;
+  // Quien consulta ya escribió el número completo; se devuelve para imprimir el certificado oficial.
   res.json({
-    certificado: { ...certificado, numero_documento_enmascarado: enmascararDocumento(numero) },
+    certificado: { ...fila, numero_documento_enmascarado: enmascararDocumento(fila.numero_documento) },
     consultadoEn: new Date().toISOString(),
   });
 });
