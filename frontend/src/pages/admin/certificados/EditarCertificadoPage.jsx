@@ -12,7 +12,9 @@ import { StatusBadge } from '../../../components/ui/StatusBadge.jsx'
 import { useApi } from '../../../hooks/useApi.js'
 import { api } from '../../../lib/api.js'
 import {
+  ARL_POR_DEFECTO,
   datosPlantillaDe,
+  fechasFormacionSugeridas,
   datosPlantillaParaApi,
   entrenadorPorDefecto,
   validarDatosPlantilla,
@@ -29,10 +31,17 @@ function Formulario({ certificado: c, cursos }) {
     fechaVencimiento: c.fechaVencimiento,
     observacion: '',
   })
-  const [plantilla, setPlantilla] = useState(() => ({
-    ...datosPlantillaDe(c),
-    entrenador: c.entrenador ?? entrenadorPorDefecto(c),
-  }))
+  const [plantilla, setPlantilla] = useState(() => {
+    const v = datosPlantillaDe(c)
+    return {
+      ...v,
+      entrenador: v.entrenador || entrenadorPorDefecto(c),
+      arl: v.arl || ARL_POR_DEFECTO,
+      ...(v.fechaInicioFormacion || v.fechaFinFormacion
+        ? {}
+        : fechasFormacionSugeridas(c.fechaExpedicion, c.intensidadHoraria)),
+    }
+  })
   const cursoElegido = cursos.find((cu) => String(cu.id) === form.cursoId)
   const [errors, setErrors] = useState({})
   const [error, setError] = useState('')
@@ -50,7 +59,7 @@ function Formulario({ certificado: c, cursos }) {
 
   const submit = async (event) => {
     event.preventDefault()
-    const erroresPlantilla = validarDatosPlantilla(plantilla, { exigir: false })
+    const erroresPlantilla = validarDatosPlantilla(plantilla)
     if (Object.keys(erroresPlantilla).length) {
       setErrors(erroresPlantilla)
       return
@@ -137,7 +146,6 @@ function Formulario({ certificado: c, cursos }) {
               onChange={setPlantilla}
               errors={errors}
               onClearError={(campo) => setErrors((e) => ({ ...e, [campo]: undefined }))}
-              requeridos={false}
             />
           </div>
           <div className="md:col-span-2">

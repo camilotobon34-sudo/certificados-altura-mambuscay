@@ -68,12 +68,14 @@ router.get('/:id', async (req, res) => {
   const certificados = await query(
     `SELECT c.id, c.numero_certificado AS numeroCertificado, c.curso_id AS cursoId, cu.nombre AS curso,
             nf.nombre AS nivel, c.fecha_expedicion AS fechaExpedicion,
-            c.fecha_vencimiento AS fechaVencimiento, ${estadoEfectivoSql('c')} AS estado
+            c.fecha_vencimiento AS fechaVencimiento, ${estadoEfectivoSql('c')} AS estado,
+            c.empresa, c.nit_empresa AS nitEmpresa, c.representante_legal AS representanteLegal,
+            c.documento_representante AS documentoRepresentante, c.arl
        FROM certificados c
        JOIN cursos cu ON cu.id = c.curso_id
        LEFT JOIN niveles_formacion nf ON nf.id = cu.nivel_formacion_id
       WHERE c.persona_id = ?
-      ORDER BY c.fecha_expedicion DESC`,
+      ORDER BY c.fecha_expedicion DESC, c.id DESC`,
     [persona.id],
   );
 

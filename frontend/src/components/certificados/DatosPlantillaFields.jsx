@@ -1,7 +1,7 @@
 import { Input, Select } from '../ui/Field.jsx'
 import { plantillaDeCurso } from '../../lib/plantillas.js'
 
-export function DatosPlantillaFields({ values, curso, onChange, errors = {}, onClearError, requeridos = true }) {
+export function DatosPlantillaFields({ values, curso, onChange, errors = {}, onClearError }) {
   const set = (campo) => (e) => {
     onChange({ ...values, [campo]: e.target.value })
     if (errors[campo]) onClearError?.(campo)
@@ -11,7 +11,11 @@ export function DatosPlantillaFields({ values, curso, onChange, errors = {}, onC
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      <Input label="Empresa (empleador)" required={requeridos} value={values.empresa} onChange={set('empresa')} error={errors.empresa} maxLength={200} />
+      <p className="text-sm text-muted md:col-span-2">
+        Ya viene lleno con los datos de siempre (y la empresa del último certificado de la persona). Cambie solo lo que sea
+        distinto; lo que quede vacío no sale en el certificado.
+      </p>
+      <Input label="Empresa (empleador)" value={values.empresa} onChange={set('empresa')} error={errors.empresa} maxLength={200} />
       <Input label="NIT de la empresa" value={values.nitEmpresa} onChange={set('nitEmpresa')} error={errors.nitEmpresa} maxLength={30} className="font-mono" />
       <Input
         label="Representante legal del empleador"
@@ -28,7 +32,7 @@ export function DatosPlantillaFields({ values, curso, onChange, errors = {}, onC
         maxLength={30}
         className="font-mono"
       />
-      <Input label="ARL" required={requeridos} value={values.arl} onChange={set('arl')} error={errors.arl} maxLength={100} placeholder="Ej. SURA" />
+      <Input label="ARL" value={values.arl} onChange={set('arl')} error={errors.arl} maxLength={100} placeholder="Ej. SURA" />
       {opciones.length > 0 ? (
         <Select label="Entrenador que firma" required options={opciones} value={values.entrenador} onChange={set('entrenador')} error={errors.entrenador} />
       ) : (

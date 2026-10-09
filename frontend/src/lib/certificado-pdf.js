@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf'
 import QRCode from 'qrcode'
+import { ARL_POR_DEFECTO, fechasFormacionSugeridas } from './datos-plantilla.js'
 import { ENTRENADORES, REPRESENTANTE_CENTRO, plantillaDeCurso } from './plantillas.js'
 
 // Certificado oficial: reproduce la plantilla Word de cada curso (hoja carta, medidas en mm).
@@ -259,18 +260,26 @@ function plantillaOnac(doc, c, p, r) {
   const E = d.empresa
   const XI = 31
   const XD = 121
-  escribir(doc, 'EMPLEADOR', E, { x: XI, alinear: 'left', estilo: 'bold', tam: 7.5, color: NEGRO })
-  const finEmpresa = escribir(doc, (c.empresa ?? '').toUpperCase(), E + 6.3, {
-    x: XI, alinear: 'left', familia: 'romana', tam: 8, color: CAFE, ancho: 82, interlineado: 1.3,
-  })
-  escribir(doc, `NIT: ${c.nitEmpresa ?? ''}`, Math.max(E + 11.8, finEmpresa + 4.6), {
-    x: XI + 2, alinear: 'left', estilo: 'bold', tam: 7.5, color: CAFE,
-  })
-  escribir(doc, 'REPRESENTANTE LEGAL EMPLEADOR', E, { x: XD, alinear: 'left', estilo: 'bold', tam: 7.5, color: NEGRO })
-  if (c.representanteLegal) nombreManuscrito(doc, nombrePropio(c.representanteLegal), XD + 27, E + 6.5, 14, 64)
-  escribir(doc, `CC: ${conPuntos(c.documentoRepresentante ?? '')}`, E + 11.8, {
-    x: XD + 10, alinear: 'left', estilo: 'bold', tam: 7.5, color: CAFE,
-  })
+  if (c.empresa) {
+    escribir(doc, 'EMPLEADOR', E, { x: XI, alinear: 'left', estilo: 'bold', tam: 7.5, color: NEGRO })
+    const finEmpresa = escribir(doc, c.empresa.toUpperCase(), E + 6.3, {
+      x: XI, alinear: 'left', familia: 'romana', tam: 8, color: CAFE, ancho: 82, interlineado: 1.3,
+    })
+    if (c.nitEmpresa) {
+      escribir(doc, `NIT: ${c.nitEmpresa}`, Math.max(E + 11.8, finEmpresa + 4.6), {
+        x: XI + 2, alinear: 'left', estilo: 'bold', tam: 7.5, color: CAFE,
+      })
+    }
+  }
+  if (c.representanteLegal || c.documentoRepresentante) {
+    escribir(doc, 'REPRESENTANTE LEGAL EMPLEADOR', E, { x: XD, alinear: 'left', estilo: 'bold', tam: 7.5, color: NEGRO })
+    if (c.representanteLegal) nombreManuscrito(doc, nombrePropio(c.representanteLegal), XD + 27, E + 6.5, 14, 64)
+    if (c.documentoRepresentante) {
+      escribir(doc, `CC: ${conPuntos(c.documentoRepresentante)}`, E + 11.8, {
+        x: XD + 10, alinear: 'left', estilo: 'bold', tam: 7.5, color: CAFE,
+      })
+    }
+  }
   escribir(doc, 'A.R.L. AFILIADO TRABAJADOR', E + 20.5, { x: XI, alinear: 'left', estilo: 'bold', tam: 7.5, color: NEGRO })
   escribir(doc, (c.arl ?? '').toUpperCase(), E + 25, { x: XI, alinear: 'left', familia: 'romana', tam: 8, color: CAFE })
 
@@ -314,7 +323,7 @@ function plantillaCinta(doc, c, p, r) {
   y = escribir(doc, frasesFirma(c.fechaExpedicion, 'La Ceja (Antioquia)'), H + 79.3, { tam: 9, color: NEGRO, ancho: 150 })
   y = escribir(doc, `Código de certificación: ${c.numeroCertificado}`, y + 8.4, { tam: 7, color: NEGRO })
   for (const [etiqueta, valor] of [['EMPRESA', c.empresa], ['NIT', c.nitEmpresa], ['ARL', c.arl]]) {
-    if (!valor && etiqueta === 'NIT') continue
+    if (!valor) continue
     y = escribir(doc, `${etiqueta}: ${(valor ?? '').toUpperCase()}`, y + 4.1, { tam: 7, color: NEGRO, ancho: 120 })
   }
 
@@ -354,7 +363,7 @@ function plantillaMedalla(doc, c, p, r) {
     ['Empresa', c.empresa],
     ['NIT', c.nitEmpresa],
     ['ARL', c.arl],
-  ]
+  ].filter(([, valor]) => valor)
   if (p.empresaAlineada === 'centro') {
     for (const [etiqueta, valor] of datosEmpresa) {
       y = escribir(doc, `${etiqueta}: ${valor ?? ''}`, y + 4.7, { estilo: 'italic', tam: 8.5, color: CAFE, ancho: 140 })
@@ -393,9 +402,17 @@ const ESTILOS = { ONAC: plantillaOnac, CINTA: plantillaCinta, MEDALLA: plantilla
 
 export const tienePlantillaOficial = (c) => Boolean(plantillaDeCurso(c))
 
-export async function generarCertificadoPdf(c) {
-  const p = plantillaDeCurso(c)
+export async function generarCertificadoPdf(datos) {
+  const p = plantillaDeCurso(datos)
   if (!p) throw new Error('El curso no tiene plantilla oficial')
+  // Certificados emitidos antes de guardar estos datos salen con los valores de siempre.
+  const c = {
+    ...datos,
+    arl: datos.arl || ARL_POR_DEFECTO,
+    ...(datos.fechaInicioFormacion || datos.fechaFinFormacion
+      ? {}
+      : fechasFormacionSugeridas(datos.fechaExpedicion, datos.intensidadHoraria)),
+  }
 
   const entrenador = ENTRENADORES[c.entrenador] ? c.entrenador : (c.entrenador || p.entrenadores[0])
   const datosEntrenador = ENTRENADORES[entrenador]

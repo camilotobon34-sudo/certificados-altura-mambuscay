@@ -16,8 +16,11 @@ import { useApi } from '../../../hooks/useApi.js'
 import { api } from '../../../lib/api.js'
 import { constanciaDesdeInterno } from '../../../lib/constancia.js'
 import {
+  ARL_POR_DEFECTO,
   DATOS_PLANTILLA_VACIOS,
   datosPlantillaParaApi,
+  empresaDeUltimoCertificado,
+  fechasFormacionSugeridas,
   entrenadorPorDefecto,
   validarDatosPlantilla,
 } from '../../../lib/datos-plantilla.js'
@@ -402,8 +405,15 @@ export default function EmitirCertificadoPage() {
     }
     if (step === 2 && !validateFechas()) return
     if (step === 3 && !validatePlantilla()) return
-    if (step === 2 && !plantilla.fechaFinFormacion) {
-      setPlantilla((v) => ({ ...v, fechaFinFormacion: fechas.fechaExpedicion }))
+    if (step === 2) {
+      setPlantilla((v) => ({
+        ...v,
+        ...(v.empresa ? {} : empresaDeUltimoCertificado(historial.data?.certificados)),
+        arl: v.arl || ARL_POR_DEFECTO,
+        ...(v.fechaInicioFormacion || v.fechaFinFormacion
+          ? {}
+          : fechasFormacionSugeridas(fechas.fechaExpedicion, fechas.intensidadHoraria)),
+      }))
     }
     setStep((s) => Math.min(s + 1, REVISION))
   }
