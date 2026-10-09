@@ -47,25 +47,52 @@ const getConnection = async () => {
   }
 };
 
+// Una conexión cuyo socket quedó muerto (p. ej. al congelarse la función de Vercel) deja la
+// petición esperando el timeout de TCP, más de un minuto. Con este límite se descarta y se
+// libera el pool; mysql2 no cierra la conexión por sí mismo cuando vence el tiempo.
+const TIEMPO_LIMITE_MS = 12_000;
+const VENCIDA = 'PROTOCOL_SEQUENCE_TIMEOUT';
+
+const conLimite = (connection) => {
+  const ejecutar = (metodo) => async (sql, values) => {
+    try {
+      return await connection[metodo]({ sql, values, timeout: TIEMPO_LIMITE_MS });
+    } catch (error) {
+      if (error.code === VENCIDA || error.fatal) connection.destroy();
+      throw error;
+    }
+  };
+  return { query: ejecutar('query'), execute: ejecutar('execute') };
+};
+
+const esLectura = (sql) => /^\s*(SELECT|SHOW)\b/i.test(sql);
+
 export const query = async (sql, params = []) => {
-  const connection = await getConnection();
-  try {
-    const [rows] = await connection.query(sql, params);
-    return rows;
-  } finally {
-    connection.release();
+  for (let intento = 0; ; intento += 1) {
+    const connection = await getConnection();
+    try {
+      const [rows] = await conLimite(connection).query(sql, params);
+      return rows;
+    } catch (error) {
+      // Solo las lecturas se repiten: una escritura vencida pudo haberse aplicado.
+      const reintentable = (error.code === VENCIDA || error.fatal) && esLectura(sql);
+      if (!reintentable || intento >= 1) throw error;
+    } finally {
+      connection.release();
+    }
   }
 };
 
 export const withTransaction = async (callback) => {
   const connection = await getConnection();
+  const conn = conLimite(connection);
   try {
-    await connection.beginTransaction();
-    const result = await callback(connection);
-    await connection.commit();
+    await conn.query('START TRANSACTION');
+    const result = await callback(conn);
+    await conn.query('COMMIT');
     return result;
   } catch (error) {
-    await connection.rollback();
+    await conn.query('ROLLBACK').catch(() => {});
     throw error;
   } finally {
     connection.release();

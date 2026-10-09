@@ -68,13 +68,23 @@ export const request = async (path, options = {}) => {
   }
 }
 
+// Si el servidor no contesta, se avisa en lugar de dejar la pantalla cargando indefinidamente.
+const TIEMPO_LIMITE_MS = 30_000
+const SIN_RESPUESTA = 'El servidor tardó demasiado en responder. Intente de nuevo.'
+
+const conTiempoLimite = (signal) => {
+  const limite = AbortSignal.timeout?.(TIEMPO_LIMITE_MS)
+  if (!limite) return signal
+  return signal && AbortSignal.any ? AbortSignal.any([signal, limite]) : (signal ?? limite)
+}
+
 const send = async (path, { method = 'GET', body, params, signal } = {}) => {
   const token = tokenStorage.get()
   let response
   try {
     response = await fetch(buildUrl(path, params), {
       method,
-      signal,
+      signal: conTiempoLimite(signal),
       headers: {
         Accept: 'application/json',
         ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
@@ -83,6 +93,7 @@ const send = async (path, { method = 'GET', body, params, signal } = {}) => {
       body: body !== undefined ? JSON.stringify(body) : undefined,
     })
   } catch (error) {
+    if (error.name === 'TimeoutError') throw new ApiError(0, SIN_RESPUESTA)
     if (error.name === 'AbortError') throw error
     throw new ApiError(0, 'No hay conexión con el servidor. Revise su conexión a internet.')
   }

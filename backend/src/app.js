@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { z } from 'zod';
 import { env } from './config/env.js';
-import { pool } from './config/db.js';
+import { query } from './config/db.js';
 import { authenticate, authorize } from './middlewares/auth.js';
 import { errorHandler, notFoundHandler } from './middlewares/error-handler.js';
 import { ROLES } from './utils/constants.js';
@@ -32,7 +32,7 @@ export const createApp = () => {
   app.get('/api/health', async (_req, res) => {
     let database = 'ok';
     try {
-      await pool.query('SELECT 1');
+      await query('SELECT 1');
     } catch {
       database = 'no disponible';
     }
