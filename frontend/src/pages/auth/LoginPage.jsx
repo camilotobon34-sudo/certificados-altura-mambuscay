@@ -1,25 +1,15 @@
 import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router'
-import { ArrowLeft, LogIn, ShieldCheck, UserRound } from 'lucide-react'
+import { ArrowLeft, LogIn } from 'lucide-react'
 import { Logo } from '../../components/brand/Logo.jsx'
 import { Button } from '../../components/ui/Button.jsx'
 import { Input, Select } from '../../components/ui/Field.jsx'
 import { Alert } from '../../components/ui/Alert.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
-import { homePathForRole, INTERNAL_ROLES, ROLES } from '../../lib/constants.js'
+import { homePathForRole, INTERNAL_ROLES } from '../../lib/constants.js'
 import { TIPOS_ALFANUMERICOS, useTiposDocumentoPublicos } from '../../lib/tipos-documento.js'
 
-const TIPOS_USUARIO = [
-  { value: 'ADMINISTRADOR', label: 'Administrador', descripcion: 'Gestión del centro', icon: ShieldCheck },
-  { value: 'CLIENTE', label: 'Cliente', descripcion: 'Mis certificados', icon: UserRound },
-]
-
-const canAccess = (path, rol) => {
-  if (!path) return false
-  if (path.startsWith('/admin')) return INTERNAL_ROLES.includes(rol)
-  if (path.startsWith('/mis-certificados')) return rol === ROLES.ESTUDIANTE
-  return false
-}
+const canAccess = (path, rol) => Boolean(path?.startsWith('/admin')) && INTERNAL_ROLES.includes(rol)
 
 // A-01 / A-02: Iniciar sesión y sesión expirada (HU-01).
 export default function LoginPage() {
@@ -28,7 +18,7 @@ export default function LoginPage() {
   const location = useLocation()
   const tipos = useTiposDocumentoPublicos()
   const [form, setForm] = useState({
-    tipoUsuario: location.state?.from?.startsWith('/mis-certificados') ? 'CLIENTE' : 'ADMINISTRADOR',
+    tipoUsuario: 'ADMINISTRADOR',
     tipoDocumento: 'CC',
     numeroDocumento: '',
     password: '',
@@ -74,34 +64,6 @@ export default function LoginPage() {
           {error && <Alert tone="error" title={error} className="mb-4" />}
 
           <form onSubmit={submit} className="flex flex-col gap-4">
-            <fieldset>
-              <legend className="mb-1.5 text-sm font-medium text-ink">Tipo de usuario</legend>
-              <div role="radiogroup" className="grid grid-cols-2 gap-2">
-                {TIPOS_USUARIO.map(({ value, label, descripcion, icon: Icon }) => {
-                  const activo = form.tipoUsuario === value
-                  return (
-                    <label
-                      key={value}
-                      className={`flex min-h-11 cursor-pointer flex-col items-center gap-1 rounded-[var(--radius-control)] border px-2 py-3 text-center transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/30 ${
-                        activo ? 'border-primary bg-primary/5 text-primary' : 'border-line text-muted hover:border-primary/40'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="tipoUsuario"
-                        value={value}
-                        checked={activo}
-                        onChange={set('tipoUsuario')}
-                        className="sr-only"
-                      />
-                      <Icon className="size-5" aria-hidden="true" />
-                      <span className={`text-sm font-semibold ${activo ? 'text-primary' : 'text-ink'}`}>{label}</span>
-                      <span className="text-xs">{descripcion}</span>
-                    </label>
-                  )
-                })}
-              </div>
-            </fieldset>
             <Select
               label="Tipo de identificación"
               required

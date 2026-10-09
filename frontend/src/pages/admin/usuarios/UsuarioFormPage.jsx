@@ -151,7 +151,9 @@ export default function UsuarioFormPage() {
             value={form.rolId}
             onChange={set('rolId')}
             error={fieldErrors.rolId}
-            options={catalogos.data.roles.map((r) => ({ value: String(r.id), label: r.nombre }))}
+            options={catalogos.data.roles
+              .filter((r) => r.codigo !== 'ESTUDIANTE' || String(r.id) === form.rolId)
+              .map((r) => ({ value: String(r.id), label: r.nombre }))}
           />
           <Input label="Correo electrónico" type="email" autoComplete="off" value={form.correo} onChange={set('correo')} error={fieldErrors.correo} hint="Opcional." />
           {esEstudiante ? (

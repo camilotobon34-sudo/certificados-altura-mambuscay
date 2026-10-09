@@ -33,7 +33,7 @@ export default function UsuariosPage() {
     <>
       <PageHeader
         title="Usuarios"
-        description="Cuentas del personal del centro y de las personas certificadas."
+        description="Cuentas del personal del centro."
         actions={<Button to="/admin/usuarios/nuevo" icon={UserPlus}>Nuevo usuario</Button>}
       />
       <Card bodyClassName="p-0">
