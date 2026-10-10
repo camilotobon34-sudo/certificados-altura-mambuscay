@@ -1,8 +1,6 @@
 import { ShieldAlert, ShieldCheck, ShieldX } from 'lucide-react'
 import { StatusBadge } from '../ui/StatusBadge.jsx'
-import { GuardarCertificadoButton } from './GuardarCertificadoButton.jsx'
 import { ESTADOS } from '../../lib/constants.js'
-import { constanciaDesdePublico } from '../../lib/constancia.js'
 import { formatDate, formatDateTime } from '../../lib/format.js'
 
 const RESULT_COPY = {
@@ -79,12 +77,6 @@ export function CertificadoPublicoCard({ certificado: c, persona, consultadoEn, 
         </DataRow>
         <DataRow label="Centro de formación">{c.centro_formacion}</DataRow>
       </dl>
-
-      {c.estado === 'VIGENTE' && (
-        <div className="px-5 pb-5">
-          <GuardarCertificadoButton constancia={constanciaDesdePublico(c, persona, consultadoEn)} size="lg" />
-        </div>
-      )}
 
       <footer className="border-t border-line bg-surface px-5 py-3 text-xs text-muted">
         Consultado el {formatDateTime(consultadoEn)} · Código de verificación {c.codigo_verificacion}
