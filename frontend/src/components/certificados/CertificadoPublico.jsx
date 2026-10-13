@@ -64,8 +64,6 @@ export function CertificadoPublicoCard({ certificado: c, persona, consultadoEn, 
           </>
         )}
         <DataRow label="Programa">{c.curso}</DataRow>
-        <DataRow label="Nivel">{c.nivel_formacion ?? c.tipo_actividad}</DataRow>
-        <DataRow label="Tipo de formación">{c.tipo_actividad}</DataRow>
         <DataRow label="Intensidad horaria">{c.intensidad_horaria} horas</DataRow>
         <DataRow label="Número de certificado" mono>
           {c.numero_certificado}
