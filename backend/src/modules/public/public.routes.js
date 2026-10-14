@@ -49,15 +49,13 @@ router.post('/consulta', consultaLimiter, validate(consultaSchema), async (req, 
   const { tipoDocumento, numeroDocumento, codigo } = req.body;
 
   const [fila] = await query(
-    `SELECT c.numero_certificado, c.codigo_verificacion, c.url_verificacion,
+    `SELECT c.numero_certificado, c.codigo_verificacion,
             c.fecha_expedicion, c.fecha_vencimiento, c.intensidad_horaria,
             ${estadoEfectivoSql('c')} AS estado, cu.nombre AS curso,
             nf.nombre AS nivel_formacion, ta.nombre AS tipo_actividad,
-            cc.razon_social AS centro_formacion, cu.prefijo_codigo,
-            c.empresa, c.nit_empresa, c.representante_legal, c.documento_representante, c.arl,
-            c.fecha_inicio_formacion, c.fecha_fin_formacion, c.entrenador,
+            cc.razon_social AS centro_formacion,
             CONCAT(p.nombres, ' ', p.apellidos) AS nombre_completo,
-            td.codigo AS tipo_documento, td.nombre AS tipo_documento_nombre, p.numero_documento
+            td.codigo AS tipo_documento, p.numero_documento
        FROM certificados c
        JOIN personas_certificadas p ON p.id = c.persona_id
        JOIN tipos_documento td ON td.id = p.tipo_documento_id
@@ -73,9 +71,18 @@ router.post('/consulta', consultaLimiter, validate(consultaSchema), async (req, 
   res.set('Cache-Control', 'no-store');
   if (!fila) throw notFound(NO_VERIFICADO);
 
-  // Quien consulta ya escribió el número completo; se devuelve para imprimir el certificado oficial.
+  // El certificado solo lo entrega el centro a la empresa: aquí no van los datos para imprimirlo
+  // (empresa, ARL, entrenador, documento completo). Un curso es de formación o de reentrenamiento:
+  // se envía un solo concepto en nivel y tipo, también para celulares con la versión anterior guardada.
+  const { numero_documento: documento, nivel_formacion: nivel, tipo_actividad: tipo, ...publico } = fila;
+  const concepto = /reentrenamiento/i.test(tipo) ? tipo : (nivel ?? tipo);
   res.json({
-    certificado: { ...fila, numero_documento_enmascarado: enmascararDocumento(fila.numero_documento) },
+    certificado: {
+      ...publico,
+      nivel_formacion: concepto,
+      tipo_actividad: concepto,
+      numero_documento_enmascarado: enmascararDocumento(documento),
+    },
     consultadoEn: new Date().toISOString(),
   });
 });

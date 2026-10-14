@@ -35,9 +35,17 @@ export default defineConfig({
         ],
       },
       workbox: {
-        navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//],
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // La página se pide primero al servidor (al abrir un QR siempre sale la versión publicada);
+        // la copia guardada solo se usa sin conexión.
+        navigateFallback: null,
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: { cacheName: 'paginas', networkTimeoutSeconds: 5 },
+          },
+        ],
+        globPatterns: ['**/*.{js,css,svg,png,woff2}'],
         // Dependencias opcionales de jsPDF (doc.html) que la constancia no usa.
         globIgnores: ['**/html2canvas-*.js', '**/purify.es-*.js'],
       },
