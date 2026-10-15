@@ -61,6 +61,60 @@ router.get('/', async (req, res) => {
   res.json(paginated(items, total, pagination));
 });
 
+const normalizar = (texto) =>
+  String(texto ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+
+// Con trasposición: "1053" y "1035" están a 1, el error típico al digitar un documento.
+const distancia = (a, b) => {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+    }
+  }
+  return d[a.length][b.length];
+};
+
+// Posibles duplicados por un error al escribir: mismo nombre (o casi) o documento casi igual.
+router.get('/parecidas', async (req, res) => {
+  const nombre = normalizar(`${req.query.nombres ?? ''} ${req.query.apellidos ?? ''}`);
+  const documento = String(req.query.numeroDocumento ?? '').replace(/[\s.-]/g, '').toUpperCase();
+  const excluir = Number(req.query.excluir) || 0;
+  if (nombre.length < 5 && documento.length < 5) return res.json({ items: [] });
+
+  const personas = await query(
+    `SELECT p.id, td.codigo AS tipoDocumento, p.numero_documento AS numeroDocumento, p.nombres, p.apellidos
+       FROM personas_certificadas p
+       JOIN tipos_documento td ON td.id = p.tipo_documento_id
+      WHERE p.id <> ?`,
+    [excluir],
+  );
+
+  const items = [];
+  for (const p of personas) {
+    const motivos = [];
+    if (nombre.length >= 5) {
+      const otro = normalizar(`${p.nombres} ${p.apellidos}`);
+      const dist = Math.abs(otro.length - nombre.length) <= 2 ? distancia(nombre, otro) : 3;
+      if (dist === 0) motivos.push('Mismo nombre');
+      else if (dist <= 2) motivos.push('Nombre casi igual');
+    }
+    if (documento.length >= 5 && p.numeroDocumento !== documento) {
+      const ancho = Math.abs(p.numeroDocumento.length - documento.length) <= 1;
+      if (ancho && distancia(documento, p.numeroDocumento) === 1) motivos.push('Documento casi igual');
+    }
+    if (motivos.length) items.push({ ...p, motivos });
+  }
+  res.json({ items: items.slice(0, 5) });
+});
+
 router.get('/:id', async (req, res) => {
   const [persona] = await query(`${SELECT_PERSONA} WHERE p.id = ?`, [req.params.id]);
   if (!persona) throw notFound('Persona no encontrada');

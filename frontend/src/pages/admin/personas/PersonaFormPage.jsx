@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router'
-import { Lock, Save } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
+import { Lock, Save, Wand2 } from 'lucide-react'
 import { Alert } from '../../../components/ui/Alert.jsx'
 import { Button } from '../../../components/ui/Button.jsx'
 import { Card } from '../../../components/ui/Card.jsx'
@@ -10,6 +10,7 @@ import { PageHeader } from '../../../components/ui/PageHeader.jsx'
 import { useApi } from '../../../hooks/useApi.js'
 import { useCatalogos } from '../../../hooks/useCatalogos.js'
 import { api } from '../../../lib/api.js'
+import { revisarNombre } from '../../../lib/revision-nombres.js'
 
 const EMPTY = { tipoDocumentoId: '', numeroDocumento: '', nombres: '', apellidos: '', correo: '', telefono: '', activo: true }
 
@@ -19,6 +20,60 @@ const PrivateBadge = () => (
     Dato privado
   </span>
 )
+
+const CAMPOS_NOMBRE = [
+  ['nombres', 'Nombres'],
+  ['apellidos', 'Apellidos'],
+]
+
+function RevisionNombres({ form, onCorregir }) {
+  const revisiones = CAMPOS_NOMBRE.map(([campo, etiqueta]) => ({ campo, etiqueta, ...revisarNombre(form[campo], campo) })).filter(
+    (r) => r.avisos.length,
+  )
+  if (!revisiones.length) return null
+  return (
+    <Alert tone="warning" title="Revise cómo quedó escrito el nombre" className="md:col-span-2">
+      <p>Es solo un aviso: si está bien escrito puede guardar así.</p>
+      <ul className="mt-2 space-y-2">
+        {revisiones.map(({ campo, etiqueta, avisos, propuesto }) => (
+          <li key={campo}>
+            <span className="font-semibold">{etiqueta}:</span> {avisos.join(' ')}
+            {propuesto && (
+              <div className="mt-1">
+                <Button type="button" size="sm" variant="secondary" icon={Wand2} onClick={() => onCorregir(campo, propuesto)}>
+                  Usar «{propuesto}»
+                </Button>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </Alert>
+  )
+}
+
+function PersonasParecidas({ items, retornoEmitir }) {
+  if (!items.length) return null
+  return (
+    <Alert tone="warning" title="Puede que esta persona ya esté registrada" className="md:col-span-2">
+      <p>Revise que no sea la misma persona con el nombre o el documento mal escrito.</p>
+      <ul className="mt-2 space-y-1">
+        {items.map((p) => (
+          <li key={p.id}>
+            <Link
+              to={retornoEmitir ? `/admin/certificados/nuevo?personaId=${p.id}` : `/admin/personas/${p.id}`}
+              className="font-semibold text-primary underline"
+            >
+              {p.nombres} {p.apellidos} · {p.tipoDocumento} {p.numeroDocumento}
+            </Link>{' '}
+            <span className="text-muted">({p.motivos.join(', ').toLowerCase()})</span>
+            {retornoEmitir && <span className="text-muted"> — toque para emitir a esta persona</span>}
+          </li>
+        ))}
+      </ul>
+    </Alert>
+  )
+}
 
 // I-03: Persona — formulario (HU-04, HU-05).
 export default function PersonaFormPage() {
@@ -30,6 +85,25 @@ export default function PersonaFormPage() {
   const [form, setForm] = useState(EMPTY)
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [parecidas, setParecidas] = useState([])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    const timer = setTimeout(() => {
+      api
+        .get(
+          '/personas/parecidas',
+          { nombres: form.nombres, apellidos: form.apellidos, numeroDocumento: form.numeroDocumento, excluir: id ?? '' },
+          { signal: controller.signal },
+        )
+        .then(({ items }) => setParecidas(items))
+        .catch(() => {})
+    }, 600)
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [form.nombres, form.apellidos, form.numeroDocumento, id])
 
   const existing = useApi(async (signal) => {
     if (!id) return null
@@ -87,6 +161,8 @@ export default function PersonaFormPage() {
           <Input label="Número de documento" required value={form.numeroDocumento} onChange={set('numeroDocumento')} error={fieldErrors.numeroDocumento} className="font-mono" />
           <Input label="Nombres" required value={form.nombres} onChange={set('nombres')} error={fieldErrors.nombres} />
           <Input label="Apellidos" required value={form.apellidos} onChange={set('apellidos')} error={fieldErrors.apellidos} />
+          <RevisionNombres form={form} onCorregir={(campo, valor) => setForm({ ...form, [campo]: valor })} />
+          <PersonasParecidas items={parecidas} retornoEmitir={retornoEmitir} />
           <Input label="Correo electrónico" type="email" badge={<PrivateBadge />} value={form.correo} onChange={set('correo')} error={fieldErrors.correo} hint="No se muestra en la consulta pública." />
           <Input label="Teléfono" type="tel" badge={<PrivateBadge />} value={form.telefono} onChange={set('telefono')} error={fieldErrors.telefono} hint="No se muestra en la consulta pública." />
           {id && <Checkbox label="Persona activa" checked={form.activo} onChange={set('activo')} />}
