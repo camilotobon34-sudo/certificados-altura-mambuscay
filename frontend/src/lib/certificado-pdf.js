@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf'
 import QRCode from 'qrcode'
 import { fechasFormacionSugeridas } from './datos-plantilla.js'
+import { nombreArchivoCertificado } from './format.js'
 import {
   ARL_POR_DEFECTO,
   AUTENTICIDAD,
@@ -500,6 +501,15 @@ export async function generarCertificadoPdf(datos) {
 }
 
 export async function descargarCertificadoPdf(c) {
+  const plantilla = plantillaDeCurso(c)
   const doc = await generarCertificadoPdf(c)
-  doc.save(`Certificado-${latin1(c.numeroCertificado)}.pdf`)
+  doc.save(
+    nombreArchivoCertificado({
+      cursoEtiqueta: plantilla?.nombre,
+      curso: c.curso,
+      tipoActividad: c.tipoActividad,
+      numeroDocumento: c.numeroDocumento,
+      nombreCompleto: c.nombreCompleto,
+    }),
+  )
 }

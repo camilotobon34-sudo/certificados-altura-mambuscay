@@ -103,6 +103,17 @@ router.get('/', validate(filtrosSchema, 'query'), async (req, res) => {
   res.json(await service.listar(req.validated.query, parsePagination(req.query)));
 });
 
+router.get('/excel', validate(filtrosSchema, 'query'), async (req, res) => {
+  const buffer = await service.exportarExcel(req.validated.query);
+  const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date());
+  res.set({
+    'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'Content-Disposition': `attachment; filename="Certificados-${hoy}.xlsx"`,
+    'Cache-Control': 'no-store',
+  });
+  res.send(Buffer.from(buffer));
+});
+
 router.get('/resumen', async (_req, res) => {
   res.json(await service.resumen());
 });

@@ -1,3 +1,4 @@
+import ExcelJS from 'exceljs';
 import { env } from '../../config/env.js';
 import { query, withTransaction } from '../../config/db.js';
 import { formatearCodigoCurso, formatearNumeroCertificado, generarCodigoVerificacion } from '../../utils/codes.js';
@@ -26,7 +27,7 @@ const SELECT_LISTADO = `
     LEFT JOIN niveles_formacion nf ON nf.id = cu.nivel_formacion_id
     JOIN tipos_actividad ta ON ta.id = cu.tipo_actividad_id`;
 
-export const listar = async (filtros, pagination) => {
+const filtrosListado = (filtros) => {
   const where = [];
   const params = [];
 
@@ -56,7 +57,18 @@ export const listar = async (filtros, pagination) => {
     params.push(filtros.hasta);
   }
 
-  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  return { whereSql: where.length ? `WHERE ${where.join(' AND ')}` : '', params };
+};
+
+// Primera palabra = primer nombre/apellido; el resto = segundo (la app aún guarda nombres juntos).
+const partirNombre = (texto = '') => {
+  const partes = String(texto).trim().split(/\s+/).filter(Boolean);
+  if (!partes.length) return { primero: '', segundo: '' };
+  return { primero: partes[0], segundo: partes.slice(1).join(' ') };
+};
+
+export const listar = async (filtros, pagination) => {
+  const { whereSql, params } = filtrosListado(filtros);
   const [items, [{ total }]] = await Promise.all([
     query(`${SELECT_LISTADO} ${whereSql} ORDER BY c.fecha_expedicion DESC, c.id DESC LIMIT ? OFFSET ?`, [
       ...params,
@@ -73,6 +85,74 @@ export const listar = async (filtros, pagination) => {
   ]);
 
   return paginated(items, total, pagination);
+};
+
+// Excel con los datos que pide el centro para todos los cursos (respeta los filtros de la lista).
+export const exportarExcel = async (filtros) => {
+  const { whereSql, params } = filtrosListado(filtros);
+  const filas = await query(
+    `SELECT p.numero_documento AS cc, p.nombres, p.apellidos, c.empresa, c.arl,
+            cu.nombre AS curso, c.numero_certificado AS numeroCertificado,
+            ${estadoEfectivoSql('c')} AS estado,
+            c.fecha_expedicion AS fechaExpedicion, c.fecha_vencimiento AS fechaVencimiento
+       FROM certificados c
+       JOIN personas_certificadas p ON p.id = c.persona_id
+       JOIN cursos cu ON cu.id = c.curso_id
+       ${whereSql}
+       ORDER BY c.fecha_expedicion DESC, c.id DESC`,
+    params,
+  );
+
+  const libro = new ExcelJS.Workbook();
+  libro.creator = 'Certificados Altura Mambuscay';
+  libro.created = new Date();
+  const hoja = libro.addWorksheet('Certificados', {
+    views: [{ state: 'frozen', ySplit: 1 }],
+  });
+
+  const columnas = [
+    { header: 'Cc', key: 'cc', width: 16 },
+    { header: 'Primer nombre', key: 'primerNombre', width: 18 },
+    { header: 'Segundo nombre', key: 'segundoNombre', width: 18 },
+    { header: 'Primer apellido', key: 'primerApellido', width: 18 },
+    { header: 'Segundo apellido', key: 'segundoApellido', width: 18 },
+    { header: 'Empresa', key: 'empresa', width: 36 },
+    { header: 'ARL', key: 'arl', width: 14 },
+    { header: 'Curso', key: 'curso', width: 42 },
+    { header: 'Número de certificado', key: 'numeroCertificado', width: 22 },
+    { header: 'Estado', key: 'estado', width: 12 },
+    { header: 'Fecha de expedición', key: 'fechaExpedicion', width: 16 },
+    { header: 'Fecha de vencimiento', key: 'fechaVencimiento', width: 16 },
+  ];
+  hoja.columns = columnas;
+
+  const encabezado = hoja.getRow(1);
+  encabezado.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  encabezado.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0A3A4A' } };
+  encabezado.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+  encabezado.height = 28;
+
+  for (const fila of filas) {
+    const nombres = partirNombre(fila.nombres);
+    const apellidos = partirNombre(fila.apellidos);
+    hoja.addRow({
+      cc: fila.cc,
+      primerNombre: nombres.primero.toUpperCase(),
+      segundoNombre: nombres.segundo.toUpperCase(),
+      primerApellido: apellidos.primero.toUpperCase(),
+      segundoApellido: apellidos.segundo.toUpperCase(),
+      empresa: (fila.empresa ?? '').toUpperCase(),
+      arl: (fila.arl ?? '').toUpperCase(),
+      curso: fila.curso,
+      numeroCertificado: fila.numeroCertificado,
+      estado: fila.estado,
+      fechaExpedicion: fila.fechaExpedicion,
+      fechaVencimiento: fila.fechaVencimiento,
+    });
+  }
+
+  hoja.autoFilter = { from: { row: 1, column: 1 }, to: { row: Math.max(1, filas.length + 1), column: columnas.length } };
+  return libro.xlsx.writeBuffer();
 };
 
 export const resumen = async () => {

@@ -51,3 +51,35 @@ export const tituloFormacion = ({ nivel, tipoActividad, tipoActividadCodigo }) =
   tipoActividadCodigo === 'REENTRENAMIENTO'
     ? `Reentrenamiento${nivel ? ` — ${nivel}` : ''}`
     : (nivel ?? tipoActividad)
+
+// Cédula con puntos de miles, como en los certificados impresos (1.001.452.434).
+export const documentoConPuntos = (numero = '') => {
+  const limpio = String(numero).replace(/[\s.-]/g, '')
+  return /^\d+$/.test(limpio) ? limpio.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : limpio
+}
+
+// Nombre del PDF al descargar: "REENTRENAMIENTO 1.001.452.434-HARLING A QUICENO BURITICA.pdf"
+export const nombreArchivoCertificado = ({ cursoEtiqueta, curso, tipoActividad, numeroDocumento, nombreCompleto } = {}) => {
+  const origen =
+    cursoEtiqueta ||
+    (/reentrenamiento/i.test(`${tipoActividad || ''} ${curso || ''}`) ? 'REENTRENAMIENTO' : curso) ||
+    'CERTIFICADO'
+  const etiqueta = String(origen)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, ' ')
+    .trim()
+  // En la captura el reentrenamiento sale solo como "REENTRENAMIENTO".
+  const cursoArchivo = /REENTRENAMIENTO/.test(etiqueta) ? 'REENTRENAMIENTO' : etiqueta
+  const cc = documentoConPuntos(numeroDocumento)
+  const nombre = String(nombreCompleto || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9 ]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  const base = [cursoArchivo, cc && nombre ? `${cc}-${nombre}` : cc || nombre || 'sin-datos'].filter(Boolean).join(' ')
+  return `${base.slice(0, 180)}.pdf`
+}

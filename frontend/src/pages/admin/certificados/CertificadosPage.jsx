@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
-import { FilePlus2, Search } from 'lucide-react'
+import { FilePlus2, FileSpreadsheet, Search } from 'lucide-react'
+import { Alert } from '../../../components/ui/Alert.jsx'
 import { Button } from '../../../components/ui/Button.jsx'
 import { Card } from '../../../components/ui/Card.jsx'
 import { EmptyState, ErrorState, Spinner } from '../../../components/ui/Feedback.jsx'
@@ -11,7 +12,7 @@ import { Pagination, Table } from '../../../components/ui/Table.jsx'
 import { useApi } from '../../../hooks/useApi.js'
 import { api } from '../../../lib/api.js'
 import { ESTADO_KEYS, ESTADOS } from '../../../lib/constants.js'
-import { formatDate, tituloFormacion } from '../../../lib/format.js'
+import { formatDate, todayIso, tituloFormacion } from '../../../lib/format.js'
 
 const FILTER_KEYS = ['q', 'estado', 'cursoId', 'desde', 'hasta']
 
@@ -36,6 +37,8 @@ export default function CertificadosPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [draft, setDraft] = useState(() => Object.fromEntries(FILTER_KEYS.map((k) => [k, searchParams.get(k) ?? ''])))
+  const [descargando, setDescargando] = useState(false)
+  const [errorDescarga, setErrorDescarga] = useState('')
   const page = Number(searchParams.get('page') ?? 1)
   const queryKey = searchParams.toString()
 
@@ -63,17 +66,36 @@ export default function CertificadosPage() {
 
   const set = (key) => (e) => setDraft({ ...draft, [key]: e.target.value })
 
+  const descargarExcel = async () => {
+    setErrorDescarga('')
+    setDescargando(true)
+    try {
+      const filtros = Object.fromEntries([...searchParams.entries()].filter(([k]) => FILTER_KEYS.includes(k)))
+      await api.download('/certificados/excel', filtros, `Certificados-${todayIso()}.xlsx`)
+    } catch (err) {
+      setErrorDescarga(err.message)
+    } finally {
+      setDescargando(false)
+    }
+  }
+
   return (
     <>
       <PageHeader
         title="Certificados"
-        description="Consulte, filtre y gestione los certificados emitidos."
+        description="Consulte, filtre y gestione los certificados emitidos. El Excel respeta los filtros aplicados."
         actions={
-          <Button to="/admin/certificados/nuevo" icon={FilePlus2}>
-            Emitir certificado
-          </Button>
+          <>
+            <Button variant="secondary" icon={FileSpreadsheet} onClick={descargarExcel} loading={descargando}>
+              Descargar Excel
+            </Button>
+            <Button to="/admin/certificados/nuevo" icon={FilePlus2}>
+              Emitir certificado
+            </Button>
+          </>
         }
       />
+      {errorDescarga && <Alert tone="error" title={errorDescarga} className="mb-4" />}
 
       <Card className="mb-6">
         <form onSubmit={applyFilters} className="grid gap-4 md:grid-cols-2 xl:grid-cols-[2fr_1fr_1.5fr_1fr_1fr_auto]">
