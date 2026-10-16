@@ -1,0 +1,17 @@
+---
+description: Qué es Certificados Altura Mambuscay (primera versión) y cómo seguir
+alwaysApply: true
+---
+
+# Certificados Altura Mambuscay
+
+El usuario habla en español. Cuando diga «sigamos con esto», continúa esta primera versión, no la 2 ni SHOPPY.
+
+PWA para consultar y administrar certificados de trabajo en alturas (Resolución 4272 de 2021, Colombia), de Altura Mambuscay.
+
+- API en línea: https://certificados-altura-mambuscay.vercel.app (`/api/health` responde y la base está conectada). La pantalla pública de esta versión se abre en local, no tiene el mismo sitio que la versión 2.
+- Repo de Camilo: https://github.com/camilotobon34-sudo/certificados-altura-mambuscay
+- Frontend React + Vite + Tailwind en `frontend/` (puerto 5173). Pantallas: consulta pública, admin, estudiante y auth.
+- Backend Node + Express + MySQL en `backend/` (puerto 4000).
+- La consulta usa tipo de documento, número y un código como `7K4P-X9QM-2RTD`.
+- No subas `.env` ni contraseñas. La versión publicada más nueva es el proyecto `certificados-altura-mambuscay-2`.
