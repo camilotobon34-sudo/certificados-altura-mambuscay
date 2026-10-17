@@ -124,11 +124,14 @@ const isoAHoja = (iso) => {
 
 const aFechaExcel = (valor) => (valor ? new Date(`${String(valor).slice(0, 10)}T12:00:00`) : '');
 
+// En el Excel: CC, CE, TI, PA y PP (permiso por protección temporal).
+const tipoDocumentoExcel = (codigo) => (codigo === 'PPT' ? 'PP' : codigo || '');
+
 const filaExcel = (fila) => {
   const nombres = partirNombre(fila.nombres);
   const apellidos = partirNombre(fila.apellidos);
   return {
-    tipoDocumento: fila.tipoDocumento,
+    tipoDocumento: tipoDocumentoExcel(fila.tipoDocumento),
     cc: fila.cc,
     primerNombre: nombres.primero.toUpperCase(),
     segundoNombre: nombres.segundo.toUpperCase(),
