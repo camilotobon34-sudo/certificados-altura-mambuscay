@@ -88,7 +88,7 @@ export default function CertificadosPage() {
     <>
       <PageHeader
         title="Certificados"
-        description="Consulte, filtre y gestione los certificados emitidos. El Excel trae una pestaña de color por cada día del rango (16-10-2026, 17-10-2026…), con tipo de documento, género, fechas y la hora en que se registró el certificado."
+        description="Consulte, filtre y gestione los certificados emitidos. El Excel trae una pestaña de color solo en los días con certificados (16-10-2026, 17-10-2026…), con tipo de documento, género, fechas y la hora en que se registró."
         actions={
           <>
             <Input label="Excel desde" type="date" value={excelDesde} onChange={(e) => setExcelDesde(e.target.value)} />

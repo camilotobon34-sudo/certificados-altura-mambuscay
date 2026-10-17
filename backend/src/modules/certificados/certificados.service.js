@@ -122,21 +122,6 @@ const isoAHoja = (iso) => {
   return d && m && y ? `${d}-${m}-${y}` : String(iso).slice(0, 10);
 };
 
-const cadaDiaIso = (desde, hasta) => {
-  if (!desde || !hasta) return [];
-  const inicio = new Date(`${String(desde).slice(0, 10)}T12:00:00`);
-  const fin = new Date(`${String(hasta).slice(0, 10)}T12:00:00`);
-  if (Number.isNaN(+inicio) || Number.isNaN(+fin) || inicio > fin) return [];
-  const dias = [];
-  for (let d = new Date(inicio), n = 0; d <= fin && n < 62; d.setDate(d.getDate() + 1), n += 1) {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    dias.push(`${y}-${m}-${day}`);
-  }
-  return dias;
-};
-
 const aFechaExcel = (valor) => (valor ? new Date(`${String(valor).slice(0, 10)}T12:00:00`) : '');
 
 const filaExcel = (fila) => {
@@ -216,14 +201,14 @@ export const exportarExcel = async (filtros) => {
   libro.creator = 'Certificados Altura Mambuscay';
   libro.created = new Date();
 
-  const diasRango = cadaDiaIso(filtros.excelDesde, filtros.excelHasta);
-  const dias = diasRango.length ? diasRango : [...porDia.keys()].sort();
+  const dias = [...porDia.keys()].sort();
   if (!dias.length) {
     llenarHojaDia(libro, isoAHoja(filtros.excelHasta || filtros.excelDesde || new Date().toISOString()), COLORES_PESTANA[0], []);
   } else {
     dias.forEach((iso, i) => {
-      llenarHojaDia(libro, isoAHoja(iso), COLORES_PESTANA[i % COLORES_PESTANA.length], porDia.get(iso) || []);
+      llenarHojaDia(libro, isoAHoja(iso), COLORES_PESTANA[i % COLORES_PESTANA.length], porDia.get(iso));
     });
+    libro.views = [{ x: 0, y: 0, width: 12000, height: 8000, firstSheet: 0, activeTab: dias.length - 1, visibility: 'visible' }];
   }
 
   return libro.xlsx.writeBuffer();
