@@ -16,7 +16,7 @@ import { useApi } from '../../../hooks/useApi.js'
 import { api } from '../../../lib/api.js'
 import { constanciaDesdeInterno } from '../../../lib/constancia.js'
 import { ROLES } from '../../../lib/constants.js'
-import { formatDate, formatDateTime, fullName } from '../../../lib/format.js'
+import { esReentrenamiento, formatDate, formatDateTime, fullName, tituloFormacion } from '../../../lib/format.js'
 
 function Info({ label, children, mono }) {
   return (
@@ -208,8 +208,7 @@ export default function CertificadoDetallePage() {
               </Info>
               <Info label="Documento" mono>{c.tipoDocumento} {c.numeroDocumento}</Info>
               <Info label="Curso">{c.curso}</Info>
-              <Info label="Nivel de formación">{c.nivel}</Info>
-              <Info label="Tipo de actividad">{c.tipoActividad}</Info>
+              <Info label={esReentrenamiento(c) ? 'Tipo de formación' : 'Nivel de formación'}>{tituloFormacion(c)}</Info>
               <Info label="Intensidad horaria">{c.intensidadHoraria} horas</Info>
               <Info label="Fecha de expedición">{formatDate(c.fechaExpedicion)}</Info>
               <Info label="Fecha de vencimiento">{formatDate(c.fechaVencimiento)}</Info>

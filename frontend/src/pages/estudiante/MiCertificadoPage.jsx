@@ -8,7 +8,7 @@ import { StatusBadge } from '../../components/ui/StatusBadge.jsx'
 import { useApi } from '../../hooks/useApi.js'
 import { api } from '../../lib/api.js'
 import { constanciaDesdeInterno } from '../../lib/constancia.js'
-import { formatDate, fullName } from '../../lib/format.js'
+import { esReentrenamiento, formatDate, fullName, tituloFormacion } from '../../lib/format.js'
 
 // E-02: Detalle de mi certificado con QR y descarga (HU-06).
 export default function MiCertificadoPage() {
@@ -23,7 +23,7 @@ export default function MiCertificadoPage() {
     ['Persona', fullName(c)],
     ['Documento', `${c.tipoDocumento} ${c.numeroDocumento}`],
     ['Curso', c.curso],
-    ['Nivel de formación', c.nivel ?? c.tipoActividad],
+    [esReentrenamiento(c) ? 'Tipo de formación' : 'Nivel de formación', tituloFormacion(c)],
     ['Intensidad horaria', `${c.intensidadHoraria} horas`],
     ['Fecha de expedición', formatDate(c.fechaExpedicion)],
     ['Fecha de vencimiento', formatDate(c.fechaVencimiento)],

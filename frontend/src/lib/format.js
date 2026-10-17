@@ -48,11 +48,13 @@ export const maskDocument = (numero = '') =>
 
 export const fullName = (p) => [p?.nombres, p?.apellidos].filter(Boolean).join(' ')
 
-// El reentrenamiento no es un nivel (Res. 4272 de 2021, Art. 27): se rotula explícitamente.
-export const tituloFormacion = ({ nivel, tipoActividad, tipoActividadCodigo }) =>
-  tipoActividadCodigo === 'REENTRENAMIENTO'
-    ? `Reentrenamiento${nivel ? ` — ${nivel}` : ''}`
-    : (nivel ?? tipoActividad)
+// Un solo concepto: reentrenamiento o el nivel (autorizado, coordinador…). Nunca los dos.
+export const esReentrenamiento = (c = {}) =>
+  c.tipoActividadCodigo === 'REENTRENAMIENTO' ||
+  /reentrenamiento/i.test(`${c.tipoActividad || ''} ${c.curso || ''} ${c.nombre || ''}`)
+
+export const tituloFormacion = (c = {}) =>
+  esReentrenamiento(c) ? (c.tipoActividad || 'Reentrenamiento') : (c.nivel ?? c.tipoActividad)
 
 // Cédula con puntos de miles, como en los certificados impresos (1.001.452.434).
 export const documentoConPuntos = (numero = '') => {

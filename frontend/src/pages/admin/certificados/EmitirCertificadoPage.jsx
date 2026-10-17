@@ -26,7 +26,7 @@ import {
   entrenadorPorDefecto,
   validarDatosPlantilla,
 } from '../../../lib/datos-plantilla.js'
-import { addMonthsIso, formatDate, formatLongDate, fullName, tituloFormacion, todayIso } from '../../../lib/format.js'
+import { addMonthsIso, esReentrenamiento, formatDate, formatLongDate, fullName, tituloFormacion, todayIso } from '../../../lib/format.js'
 import { verificationUrl } from '../../../lib/verification.js'
 
 const STEPS = ['Persona', 'Curso y nivel', 'Fechas e intensidad', 'Empresa del trabajador', 'Revisión']
@@ -194,7 +194,9 @@ function StepCurso({ curso, onSelect, vigentes }) {
               <input type="radio" name="curso" className="mt-1 accent-primary" checked={cursoId === c.id} onChange={() => onSelect(c)} />
               <span>
                 <span className="block font-semibold text-ink">{c.nombre}</span>
-                {c.nivel && <span className="block text-sm text-muted">{tituloFormacion(c)}</span>}
+                {tituloFormacion(c) && tituloFormacion(c) !== c.nombre && (
+                  <span className="block text-sm text-muted">{tituloFormacion(c)}</span>
+                )}
                 <span className="mt-2 inline-flex flex-wrap gap-2 text-xs">
                   <span className="rounded-full bg-accent-soft px-2 py-0.5 font-medium text-warning">{c.intensidadHoraria} horas</span>
                   {c.prefijoCodigo && (
@@ -289,8 +291,7 @@ function Resumen({ persona, curso, fechas, plantilla }) {
     ['Persona certificada', fullName(persona)],
     ['Documento', `${persona.tipoDocumento} ${persona.numeroDocumento}`],
     ['Curso', curso.nombre],
-    ['Nivel de formación', curso.nivel ?? '—'],
-    ['Tipo de actividad', curso.tipoActividad],
+    [esReentrenamiento(curso) ? 'Tipo de formación' : 'Nivel de formación', tituloFormacion(curso) || '—'],
     ['Intensidad horaria', `${fechas.intensidadHoraria} horas`],
     ['Fecha de expedición', formatDate(fechas.fechaExpedicion)],
     ['Fecha de vencimiento', formatDate(fechas.fechaVencimiento)],

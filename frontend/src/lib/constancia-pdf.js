@@ -2,7 +2,7 @@ import { jsPDF } from 'jspdf'
 import QRCode from 'qrcode'
 import { LOGO_URL, NOMBRE_EMPRESA, NOMBRE_SISTEMA } from './brand.js'
 import { ESTADOS } from './constants.js'
-import { formatDate, formatDateTime, nombreArchivoCertificado } from './format.js'
+import { formatDate, formatDateTime, nombreArchivoCertificado, tituloFormacion } from './format.js'
 
 // Colores de docs/01-identidad-visual (1.3).
 const COLOR = {
@@ -119,8 +119,7 @@ export async function descargarConstanciaPdf(c) {
     ['Nombre', c.nombreCompleto],
     ['Documento', `${c.tipoDocumento ?? ''} ${c.documentoEnmascarado ?? ''}`.trim()],
     ['Programa', c.curso],
-    ['Nivel', c.nivel ?? c.tipoActividad],
-    ['Tipo de formación', c.tipoActividad],
+    ['Formación', tituloFormacion(c)],
     ['Intensidad horaria', c.intensidadHoraria ? `${c.intensidadHoraria} horas` : null],
     ['Número de certificado', c.numeroCertificado],
     ['Código de verificación (para la consulta pública)', c.codigoVerificacion],
