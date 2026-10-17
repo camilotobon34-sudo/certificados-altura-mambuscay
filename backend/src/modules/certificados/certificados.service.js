@@ -112,6 +112,7 @@ const COLUMNAS_EXCEL = [
   { header: 'Fecha en que se registró', key: 'fechaRegistro', width: 18, numFmt: 'dd/mm/yyyy' },
   { header: 'Fecha de expedición', key: 'fechaExpedicion', width: 16, numFmt: 'dd/mm/yyyy' },
   { header: 'Fecha de vencimiento', key: 'fechaVencimiento', width: 16, numFmt: 'dd/mm/yyyy' },
+  { header: 'Hora en que se registró', key: 'horaRegistro', width: 16 },
 ];
 
 const COLORES_PESTANA = ['FF548235', 'FF0D7377', 'FF9B4F96', 'FFC45911', 'FF2E75B6'];
@@ -158,6 +159,7 @@ const filaExcel = (fila) => {
     fechaRegistro: aFechaExcel(fila.fechaRegistro),
     fechaExpedicion: aFechaExcel(fila.fechaExpedicion),
     fechaVencimiento: aFechaExcel(fila.fechaVencimiento),
+    horaRegistro: fila.horaRegistro || '',
   };
 };
 
@@ -192,6 +194,7 @@ export const exportarExcel = async (filtros) => {
             c.empresa, c.arl, cu.nombre AS curso, c.numero_certificado AS numeroCertificado,
             ${estadoEfectivoSql('c')} AS estado,
             DATE(c.creado_en) AS fechaRegistro,
+            DATE_FORMAT(c.creado_en, '%H:%i:%s') AS horaRegistro,
             c.fecha_expedicion AS fechaExpedicion, c.fecha_vencimiento AS fechaVencimiento
        FROM certificados c
        JOIN personas_certificadas p ON p.id = c.persona_id
