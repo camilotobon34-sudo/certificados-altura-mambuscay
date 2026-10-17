@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
-import { Lock, Save, Wand2 } from 'lucide-react'
+import { Lock, Save } from 'lucide-react'
 import { Alert } from '../../../components/ui/Alert.jsx'
 import { Button } from '../../../components/ui/Button.jsx'
 import { Card } from '../../../components/ui/Card.jsx'
@@ -10,7 +10,7 @@ import { PageHeader } from '../../../components/ui/PageHeader.jsx'
 import { useApi } from '../../../hooks/useApi.js'
 import { useCatalogos } from '../../../hooks/useCatalogos.js'
 import { api } from '../../../lib/api.js'
-import { revisarNombre } from '../../../lib/revision-nombres.js'
+import { formatoNombre, revisarNombre } from '../../../lib/revision-nombres.js'
 
 const EMPTY = {
   tipoDocumentoId: '',
@@ -36,27 +36,20 @@ const CAMPOS_NOMBRE = [
   ['apellidos', 'Apellidos'],
 ]
 
-function RevisionNombres({ form, onCorregir }) {
+function RevisionNombres({ form }) {
   const firma = `${form.nombres}\n${form.apellidos}`
   const [dejado, setDejado] = useState(null)
-  const revisiones = CAMPOS_NOMBRE.map(([campo, etiqueta]) => ({ campo, etiqueta, ...revisarNombre(form[campo], campo) })).filter(
+  const revisiones = CAMPOS_NOMBRE.map(([campo, etiqueta]) => ({ campo, etiqueta, ...revisarNombre(form[campo]) })).filter(
     (r) => r.avisos.length,
   )
   if (dejado === firma || !revisiones.length) return null
   return (
     <Alert tone="warning" title="Revise cómo quedó escrito el nombre" className="md:col-span-2">
-      <p>Es solo un aviso: si el nombre está bien (por ejemplo Pérez Pérez), déjelo así y guarde.</p>
+      <p>Es solo un aviso. No se cambian tildes: si el nombre está bien, déjelo así y guarde.</p>
       <ul className="mt-2 space-y-2">
-        {revisiones.map(({ campo, etiqueta, avisos, propuesto }) => (
+        {revisiones.map(({ campo, etiqueta, avisos }) => (
           <li key={campo}>
             <span className="font-semibold">{etiqueta}:</span> {avisos.join(' ')}
-            {propuesto && (
-              <div className="mt-1">
-                <Button type="button" size="sm" variant="secondary" icon={Wand2} onClick={() => onCorregir(campo, propuesto)}>
-                  Usar «{propuesto}»
-                </Button>
-              </div>
-            )}
           </li>
         ))}
       </ul>
@@ -150,7 +143,12 @@ export default function PersonaFormPage() {
     setSaving(true)
     setError(null)
     try {
-      const body = { ...form, tipoDocumentoId: Number(form.tipoDocumentoId) }
+      const body = {
+        ...form,
+        tipoDocumentoId: Number(form.tipoDocumentoId),
+        nombres: formatoNombre(form.nombres),
+        apellidos: formatoNombre(form.apellidos),
+      }
       const { persona } = id ? await api.put(`/personas/${id}`, body) : await api.post('/personas', body)
       navigate(retornoEmitir ? `/admin/certificados/nuevo?personaId=${persona.id}` : `/admin/personas/${persona.id}`, { replace: true })
     } catch (err) {
@@ -202,7 +200,7 @@ export default function PersonaFormPage() {
             badge={<PrivateBadge />}
             hint="Sale en el Excel de certificados. No se muestra en la consulta pública."
           />
-          <RevisionNombres form={form} onCorregir={(campo, valor) => setForm({ ...form, [campo]: valor })} />
+          <RevisionNombres form={form} />
           <PersonasParecidas items={parecidas} retornoEmitir={retornoEmitir} />
           <Input label="Correo electrónico" type="email" badge={<PrivateBadge />} value={form.correo} onChange={set('correo')} error={fieldErrors.correo} hint="No se muestra en la consulta pública." />
           <Input label="Teléfono" type="tel" badge={<PrivateBadge />} value={form.telefono} onChange={set('telefono')} error={fieldErrors.telefono} hint="No se muestra en la consulta pública." />
