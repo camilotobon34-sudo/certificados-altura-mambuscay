@@ -35,6 +35,8 @@ export const formatDateTime = (value) => {
 export const todayIso = () =>
   new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE }).format(new Date())
 
+export const firstDayOfMonthIso = () => `${todayIso().slice(0, 8)}01`
+
 export const addMonthsIso = (iso, months) => {
   const [y, m, d] = iso.split('-').map(Number)
   const date = new Date(Date.UTC(y, m - 1 + months, d))

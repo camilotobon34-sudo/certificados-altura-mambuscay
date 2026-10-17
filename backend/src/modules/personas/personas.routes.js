@@ -25,6 +25,7 @@ const personaSchema = z.object({
     .regex(/^[A-Za-z0-9]{3,30}$/, 'Número de documento inválido (solo letras y números)'),
   nombres: z.string().trim().min(2, 'Nombres obligatorios').max(100),
   apellidos: z.string().trim().min(2, 'Apellidos obligatorios').max(100),
+  genero: z.enum(['M', 'F'], 'Seleccione el género'),
   fechaNacimiento: z
     .iso.date('Ingrese la fecha de nacimiento')
     .refine((v) => v <= new Date().toISOString().slice(0, 10), 'La fecha de nacimiento no puede ser futura')
@@ -40,7 +41,7 @@ const personaSchema = z.object({
 
 const SELECT_PERSONA = `
   SELECT p.id, p.tipo_documento_id AS tipoDocumentoId, td.codigo AS tipoDocumento,
-         p.numero_documento AS numeroDocumento, p.nombres, p.apellidos,
+         p.numero_documento AS numeroDocumento, p.nombres, p.apellidos, p.genero,
          p.fecha_nacimiento AS fechaNacimiento, p.correo, p.telefono,
          p.activo, p.creado_en AS creadoEn, p.actualizado_en AS actualizadoEn
     FROM personas_certificadas p
@@ -151,9 +152,9 @@ router.post('/', validate(personaSchema), async (req, res) => {
   await assertTipoDocumento(p.tipoDocumentoId);
   const result = await query(
     `INSERT INTO personas_certificadas
-       (tipo_documento_id, numero_documento, nombres, apellidos, fecha_nacimiento, correo, telefono, activo)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [p.tipoDocumentoId, p.numeroDocumento.toUpperCase(), p.nombres, p.apellidos, p.fechaNacimiento, p.correo, p.telefono, p.activo],
+       (tipo_documento_id, numero_documento, nombres, apellidos, genero, fecha_nacimiento, correo, telefono, activo)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [p.tipoDocumentoId, p.numeroDocumento.toUpperCase(), p.nombres, p.apellidos, p.genero, p.fechaNacimiento, p.correo, p.telefono, p.activo],
   );
   const [persona] = await query(`${SELECT_PERSONA} WHERE p.id = ?`, [result.insertId]);
   res.status(201).json({ persona });
@@ -168,9 +169,9 @@ router.put('/:id', validate(personaSchema), async (req, res) => {
     const [actualizada] = await conn.execute(
       `UPDATE personas_certificadas
           SET tipo_documento_id = ?, numero_documento = ?, nombres = ?, apellidos = ?,
-              fecha_nacimiento = ?, correo = ?, telefono = ?, activo = ?
+              genero = ?, fecha_nacimiento = ?, correo = ?, telefono = ?, activo = ?
         WHERE id = ?`,
-      [p.tipoDocumentoId, numeroDocumento, p.nombres, p.apellidos, p.fechaNacimiento, p.correo, p.telefono, p.activo, req.params.id],
+      [p.tipoDocumentoId, numeroDocumento, p.nombres, p.apellidos, p.genero, p.fechaNacimiento, p.correo, p.telefono, p.activo, req.params.id],
     );
     await conn.execute('UPDATE usuarios SET tipo_documento_id = ?, numero_documento = ? WHERE persona_id = ?', [
       p.tipoDocumentoId,

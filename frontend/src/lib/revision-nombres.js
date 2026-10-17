@@ -49,23 +49,7 @@ const diccionario = (lista) => {
 }
 
 const DICCIONARIOS = { nombres: diccionario(NOMBRES), apellidos: diccionario(APELLIDOS) }
-const TODAS = new Set([...DICCIONARIOS.nombres.keys(), ...DICCIONARIOS.apellidos.keys()])
 const PARTICULAS = new Set(['de', 'del', 'la', 'las', 'los', 'y', 'san'])
-
-// Distancia con trasposición: "Rodirguez" está a 1 de "Rodriguez".
-export const distancia = (a, b) => {
-  if (Math.abs(a.length - b.length) > 2) return 3
-  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)])
-  for (let j = 1; j <= b.length; j++) d[0][j] = j
-  for (let i = 1; i <= a.length; i++) {
-    for (let j = 1; j <= b.length; j++) {
-      const costo = a[i - 1] === b[j - 1] ? 0 : 1
-      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + costo)
-      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1)
-    }
-  }
-  return d[a.length][b.length]
-}
 
 // "de la Torre" y "De la Torre" son válidos; dentro del nombre las partículas van en minúscula.
 const capitalizar = (palabra, i) =>
@@ -79,10 +63,10 @@ const sugerenciaPara = (palabra, campo) => {
   const k = clave(palabra)
   if (k.length < 3 || PARTICULAS.has(k)) return null
   const correcta = DICCIONARIOS[campo].get(k)
-  if (correcta) return sinTildes(correcta) !== correcta && palabra.toLowerCase() !== correcta.toLowerCase() ? correcta : null
-  if (correcta === null || TODAS.has(k) || k.length < 5) return null
-  const cercanas = [...DICCIONARIOS[campo].entries()].filter(([otra, forma]) => forma && distancia(k, otra) === 1)
-  return cercanas.length === 1 ? cercanas[0][1] : null
+  // Solo tildes o mayúsculas (Perez → Pérez). Nunca cambiar un apellido válido por otro
+  // parecido (Pérez no debe pasar a Perea).
+  if (correcta) return palabra.toLowerCase() !== correcta.toLowerCase() ? correcta : null
+  return null
 }
 
 /**

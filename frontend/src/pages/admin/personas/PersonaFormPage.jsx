@@ -12,7 +12,17 @@ import { useCatalogos } from '../../../hooks/useCatalogos.js'
 import { api } from '../../../lib/api.js'
 import { revisarNombre } from '../../../lib/revision-nombres.js'
 
-const EMPTY = { tipoDocumentoId: '', numeroDocumento: '', nombres: '', apellidos: '', fechaNacimiento: '', correo: '', telefono: '', activo: true }
+const EMPTY = {
+  tipoDocumentoId: '',
+  numeroDocumento: '',
+  nombres: '',
+  apellidos: '',
+  genero: '',
+  fechaNacimiento: '',
+  correo: '',
+  telefono: '',
+  activo: true,
+}
 
 const PrivateBadge = () => (
   <span className="inline-flex items-center gap-1 rounded-full bg-surface px-2 py-0.5 text-xs font-medium text-muted">
@@ -27,13 +37,15 @@ const CAMPOS_NOMBRE = [
 ]
 
 function RevisionNombres({ form, onCorregir }) {
+  const firma = `${form.nombres}\n${form.apellidos}`
+  const [dejado, setDejado] = useState(null)
   const revisiones = CAMPOS_NOMBRE.map(([campo, etiqueta]) => ({ campo, etiqueta, ...revisarNombre(form[campo], campo) })).filter(
     (r) => r.avisos.length,
   )
-  if (!revisiones.length) return null
+  if (dejado === firma || !revisiones.length) return null
   return (
     <Alert tone="warning" title="Revise cómo quedó escrito el nombre" className="md:col-span-2">
-      <p>Es solo un aviso: si está bien escrito puede guardar así.</p>
+      <p>Es solo un aviso: si el nombre está bien (por ejemplo Pérez Pérez), déjelo así y guarde.</p>
       <ul className="mt-2 space-y-2">
         {revisiones.map(({ campo, etiqueta, avisos, propuesto }) => (
           <li key={campo}>
@@ -48,6 +60,11 @@ function RevisionNombres({ form, onCorregir }) {
           </li>
         ))}
       </ul>
+      <div className="mt-3">
+        <Button type="button" size="sm" variant="ghost" onClick={() => setDejado(firma)}>
+          Dejar el nombre como está
+        </Button>
+      </div>
     </Alert>
   )
 }
@@ -113,6 +130,7 @@ export default function PersonaFormPage() {
       numeroDocumento: persona.numeroDocumento,
       nombres: persona.nombres,
       apellidos: persona.apellidos,
+      genero: persona.genero ?? '',
       fechaNacimiento: persona.fechaNacimiento ? String(persona.fechaNacimiento).slice(0, 10) : '',
       correo: persona.correo ?? '',
       telefono: persona.telefono ?? '',
@@ -162,6 +180,18 @@ export default function PersonaFormPage() {
           <Input label="Número de documento" required value={form.numeroDocumento} onChange={set('numeroDocumento')} error={fieldErrors.numeroDocumento} className="font-mono" />
           <Input label="Nombres" required value={form.nombres} onChange={set('nombres')} error={fieldErrors.nombres} />
           <Input label="Apellidos" required value={form.apellidos} onChange={set('apellidos')} error={fieldErrors.apellidos} />
+          <Select
+            label="Género"
+            required
+            placeholder="Seleccione"
+            value={form.genero}
+            onChange={set('genero')}
+            error={fieldErrors.genero}
+            options={[
+              { value: 'M', label: 'Masculino' },
+              { value: 'F', label: 'Femenino' },
+            ]}
+          />
           <Input
             label="Fecha de nacimiento"
             type="date"

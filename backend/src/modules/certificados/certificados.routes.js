@@ -17,6 +17,8 @@ const filtrosSchema = z.object({
   personaId: z.coerce.number().int().positive().optional(),
   desde: fecha('Fecha "desde" inválida').optional(),
   hasta: fecha('Fecha "hasta" inválida').optional(),
+  excelDesde: fecha('Fecha inicial del Excel inválida').optional(),
+  excelHasta: fecha('Fecha final del Excel inválida').optional(),
 });
 
 // Opcional: si se omite, el sistema asigna el consecutivo MAM-{nivel}-{año}-{id}.
@@ -106,9 +108,10 @@ router.get('/', validate(filtrosSchema, 'query'), async (req, res) => {
 router.get('/excel', validate(filtrosSchema, 'query'), async (req, res) => {
   const buffer = await service.exportarExcel(req.validated.query);
   const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date());
+  const nombre = `Certificados-${req.validated.query.excelDesde ?? hoy}.xlsx`;
   res.set({
     'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'Content-Disposition': `attachment; filename="Certificados-${hoy}.xlsx"`,
+    'Content-Disposition': `attachment; filename="${nombre}"`,
     'Cache-Control': 'no-store',
   });
   res.send(Buffer.from(buffer));

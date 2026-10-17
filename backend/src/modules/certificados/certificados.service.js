@@ -56,6 +56,14 @@ const filtrosListado = (filtros) => {
     where.push('c.fecha_expedicion <= ?');
     params.push(filtros.hasta);
   }
+  if (filtros.excelDesde) {
+    where.push('c.creado_en >= ?');
+    params.push(filtros.excelDesde);
+  }
+  if (filtros.excelHasta) {
+    where.push('c.creado_en < DATE_ADD(?, INTERVAL 1 DAY)');
+    params.push(filtros.excelHasta);
+  }
 
   return { whereSql: where.length ? `WHERE ${where.join(' AND ')}` : '', params };
 };
@@ -87,74 +95,118 @@ export const listar = async (filtros, pagination) => {
   return paginated(items, total, pagination);
 };
 
-// Excel con los datos que pide el centro para todos los cursos (respeta los filtros de la lista).
-export const exportarExcel = async (filtros) => {
-  const { whereSql, params } = filtrosListado(filtros);
-  const filas = await query(
-    `SELECT p.numero_documento AS cc, p.nombres, p.apellidos, p.fecha_nacimiento AS fechaNacimiento,
-            c.empresa, c.arl, cu.nombre AS curso, c.numero_certificado AS numeroCertificado,
-            ${estadoEfectivoSql('c')} AS estado,
-            c.fecha_expedicion AS fechaExpedicion, c.fecha_vencimiento AS fechaVencimiento
-       FROM certificados c
-       JOIN personas_certificadas p ON p.id = c.persona_id
-       JOIN cursos cu ON cu.id = c.curso_id
-       ${whereSql}
-       ORDER BY c.fecha_expedicion DESC, c.id DESC`,
-    params,
-  );
+const COLUMNAS_EXCEL = [
+  { header: 'Tipo de documento', key: 'tipoDocumento', width: 22 },
+  { header: 'Documento', key: 'cc', width: 16 },
+  { header: 'Primer nombre', key: 'primerNombre', width: 18 },
+  { header: 'Segundo nombre', key: 'segundoNombre', width: 18 },
+  { header: 'Primer apellido', key: 'primerApellido', width: 18 },
+  { header: 'Segundo apellido', key: 'segundoApellido', width: 18 },
+  { header: 'Género', key: 'genero', width: 12 },
+  { header: 'Fecha de nacimiento', key: 'fechaNacimiento', width: 16, numFmt: 'dd/mm/yyyy' },
+  { header: 'Empresa', key: 'empresa', width: 36 },
+  { header: 'ARL', key: 'arl', width: 14 },
+  { header: 'Curso', key: 'curso', width: 42 },
+  { header: 'Número de certificado', key: 'numeroCertificado', width: 22 },
+  { header: 'Estado', key: 'estado', width: 12 },
+  { header: 'Fecha en que se registró', key: 'fechaRegistro', width: 18, numFmt: 'dd/mm/yyyy' },
+  { header: 'Fecha de expedición', key: 'fechaExpedicion', width: 16, numFmt: 'dd/mm/yyyy' },
+  { header: 'Fecha de vencimiento', key: 'fechaVencimiento', width: 16, numFmt: 'dd/mm/yyyy' },
+];
 
-  const libro = new ExcelJS.Workbook();
-  libro.creator = 'Certificados Altura Mambuscay';
-  libro.created = new Date();
-  const hoja = libro.addWorksheet('Certificados', {
+const COLORES_PESTANA = ['FF548235', 'FF0D7377', 'FF9B4F96', 'FFC45911', 'FF2E75B6'];
+
+const isoAHoja = (iso) => {
+  const [y, m, d] = String(iso).slice(0, 10).split('-');
+  return d && m && y ? `${d}-${m}-${y}` : String(iso).slice(0, 10);
+};
+
+const aFechaExcel = (valor) => (valor ? new Date(`${String(valor).slice(0, 10)}T12:00:00`) : '');
+
+const filaExcel = (fila) => {
+  const nombres = partirNombre(fila.nombres);
+  const apellidos = partirNombre(fila.apellidos);
+  return {
+    tipoDocumento: fila.tipoDocumentoNombre || fila.tipoDocumento,
+    cc: fila.cc,
+    primerNombre: nombres.primero.toUpperCase(),
+    segundoNombre: nombres.segundo.toUpperCase(),
+    primerApellido: apellidos.primero.toUpperCase(),
+    segundoApellido: apellidos.segundo.toUpperCase(),
+    genero: fila.genero === 'F' ? 'F' : fila.genero === 'M' ? 'M' : '',
+    fechaNacimiento: aFechaExcel(fila.fechaNacimiento),
+    empresa: (fila.empresa ?? '').toUpperCase(),
+    arl: (fila.arl ?? '').toUpperCase(),
+    curso: fila.curso,
+    numeroCertificado: fila.numeroCertificado,
+    estado: fila.estado,
+    fechaRegistro: aFechaExcel(fila.fechaRegistro),
+    fechaExpedicion: aFechaExcel(fila.fechaExpedicion),
+    fechaVencimiento: aFechaExcel(fila.fechaVencimiento),
+  };
+};
+
+const llenarHojaDia = (libro, nombre, color, filas) => {
+  const hoja = libro.addWorksheet(nombre, {
+    properties: { tabColor: { argb: color } },
     views: [{ state: 'frozen', ySplit: 1 }],
   });
-
-  const columnas = [
-    { header: 'Cc', key: 'cc', width: 16 },
-    { header: 'Primer nombre', key: 'primerNombre', width: 18 },
-    { header: 'Segundo nombre', key: 'segundoNombre', width: 18 },
-    { header: 'Primer apellido', key: 'primerApellido', width: 18 },
-    { header: 'Segundo apellido', key: 'segundoApellido', width: 18 },
-    { header: 'Fecha de nacimiento', key: 'fechaNacimiento', width: 16, numFmt: 'dd/mm/yyyy' },
-    { header: 'Empresa', key: 'empresa', width: 36 },
-    { header: 'ARL', key: 'arl', width: 14 },
-    { header: 'Curso', key: 'curso', width: 42 },
-    { header: 'Número de certificado', key: 'numeroCertificado', width: 22 },
-    { header: 'Estado', key: 'estado', width: 12 },
-    { header: 'Fecha de expedición', key: 'fechaExpedicion', width: 16 },
-    { header: 'Fecha de vencimiento', key: 'fechaVencimiento', width: 16 },
-  ];
-  hoja.columns = columnas;
-  hoja.getColumn('fechaNacimiento').numFmt = 'dd/mm/yyyy';
-
+  hoja.columns = COLUMNAS_EXCEL;
+  for (const col of ['fechaNacimiento', 'fechaRegistro', 'fechaExpedicion', 'fechaVencimiento']) {
+    hoja.getColumn(col).numFmt = 'dd/mm/yyyy';
+  }
   const encabezado = hoja.getRow(1);
   encabezado.font = { bold: true, color: { argb: 'FFFFFFFF' } };
   encabezado.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0A3A4A' } };
   encabezado.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
   encabezado.height = 28;
+  for (const fila of filas) hoja.addRow(filaExcel(fila));
+  hoja.autoFilter = {
+    from: { row: 1, column: 1 },
+    to: { row: Math.max(1, filas.length + 1), column: COLUMNAS_EXCEL.length },
+  };
+};
 
+// Una hoja por día (16-10-2026, 17-10-2026…), como el archivo de ejemplo del centro.
+export const exportarExcel = async (filtros) => {
+  const { whereSql, params } = filtrosListado(filtros);
+  const filas = await query(
+    `SELECT td.codigo AS tipoDocumento, td.nombre AS tipoDocumentoNombre,
+            p.numero_documento AS cc, p.nombres, p.apellidos, p.genero,
+            p.fecha_nacimiento AS fechaNacimiento,
+            c.empresa, c.arl, cu.nombre AS curso, c.numero_certificado AS numeroCertificado,
+            ${estadoEfectivoSql('c')} AS estado,
+            DATE(c.creado_en) AS fechaRegistro,
+            c.fecha_expedicion AS fechaExpedicion, c.fecha_vencimiento AS fechaVencimiento
+       FROM certificados c
+       JOIN personas_certificadas p ON p.id = c.persona_id
+       JOIN tipos_documento td ON td.id = p.tipo_documento_id
+       JOIN cursos cu ON cu.id = c.curso_id
+       ${whereSql}
+       ORDER BY c.creado_en, c.id`,
+    params,
+  );
+
+  const porDia = new Map();
   for (const fila of filas) {
-    const nombres = partirNombre(fila.nombres);
-    const apellidos = partirNombre(fila.apellidos);
-    hoja.addRow({
-      cc: fila.cc,
-      primerNombre: nombres.primero.toUpperCase(),
-      segundoNombre: nombres.segundo.toUpperCase(),
-      primerApellido: apellidos.primero.toUpperCase(),
-      segundoApellido: apellidos.segundo.toUpperCase(),
-      fechaNacimiento: fila.fechaNacimiento ? new Date(`${String(fila.fechaNacimiento).slice(0, 10)}T12:00:00`) : '',
-      empresa: (fila.empresa ?? '').toUpperCase(),
-      arl: (fila.arl ?? '').toUpperCase(),
-      curso: fila.curso,
-      numeroCertificado: fila.numeroCertificado,
-      estado: fila.estado,
-      fechaExpedicion: fila.fechaExpedicion,
-      fechaVencimiento: fila.fechaVencimiento,
+    const iso = String(fila.fechaRegistro).slice(0, 10);
+    if (!porDia.has(iso)) porDia.set(iso, []);
+    porDia.get(iso).push(fila);
+  }
+
+  const libro = new ExcelJS.Workbook();
+  libro.creator = 'Certificados Altura Mambuscay';
+  libro.created = new Date();
+
+  const dias = [...porDia.keys()].sort();
+  if (!dias.length) {
+    llenarHojaDia(libro, isoAHoja(filtros.excelHasta || filtros.excelDesde || new Date().toISOString()), COLORES_PESTANA[0], []);
+  } else {
+    dias.forEach((iso, i) => {
+      llenarHojaDia(libro, isoAHoja(iso), COLORES_PESTANA[i % COLORES_PESTANA.length], porDia.get(iso));
     });
   }
 
-  hoja.autoFilter = { from: { row: 1, column: 1 }, to: { row: Math.max(1, filas.length + 1), column: columnas.length } };
   return libro.xlsx.writeBuffer();
 };
 

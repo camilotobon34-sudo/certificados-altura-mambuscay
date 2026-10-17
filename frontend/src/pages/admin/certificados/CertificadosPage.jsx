@@ -12,7 +12,7 @@ import { Pagination, Table } from '../../../components/ui/Table.jsx'
 import { useApi } from '../../../hooks/useApi.js'
 import { api } from '../../../lib/api.js'
 import { ESTADO_KEYS, ESTADOS } from '../../../lib/constants.js'
-import { formatDate, todayIso, tituloFormacion } from '../../../lib/format.js'
+import { firstDayOfMonthIso, formatDate, todayIso, tituloFormacion } from '../../../lib/format.js'
 
 const FILTER_KEYS = ['q', 'estado', 'cursoId', 'desde', 'hasta']
 
@@ -39,6 +39,8 @@ export default function CertificadosPage() {
   const [draft, setDraft] = useState(() => Object.fromEntries(FILTER_KEYS.map((k) => [k, searchParams.get(k) ?? ''])))
   const [descargando, setDescargando] = useState(false)
   const [errorDescarga, setErrorDescarga] = useState('')
+  const [excelDesde, setExcelDesde] = useState(firstDayOfMonthIso())
+  const [excelHasta, setExcelHasta] = useState(todayIso())
   const page = Number(searchParams.get('page') ?? 1)
   const queryKey = searchParams.toString()
 
@@ -70,8 +72,11 @@ export default function CertificadosPage() {
     setErrorDescarga('')
     setDescargando(true)
     try {
-      const filtros = Object.fromEntries([...searchParams.entries()].filter(([k]) => FILTER_KEYS.includes(k)))
-      await api.download('/certificados/excel', filtros, `Certificados-${todayIso()}.xlsx`)
+      await api.download(
+        '/certificados/excel',
+        { excelDesde, excelHasta },
+        `Certificados-${excelDesde}-a-${excelHasta}.xlsx`,
+      )
     } catch (err) {
       setErrorDescarga(err.message)
     } finally {
@@ -83,10 +88,18 @@ export default function CertificadosPage() {
     <>
       <PageHeader
         title="Certificados"
-        description="Consulte, filtre y gestione los certificados emitidos. El Excel respeta los filtros aplicados."
+        description="Consulte, filtre y gestione los certificados emitidos. El Excel trae una hoja por día, con pestaña de color."
         actions={
           <>
-            <Button variant="secondary" icon={FileSpreadsheet} onClick={descargarExcel} loading={descargando}>
+            <Input label="Excel desde" type="date" value={excelDesde} onChange={(e) => setExcelDesde(e.target.value)} />
+            <Input label="Excel hasta" type="date" value={excelHasta} onChange={(e) => setExcelHasta(e.target.value)} />
+            <Button
+              variant="secondary"
+              icon={FileSpreadsheet}
+              onClick={descargarExcel}
+              loading={descargando}
+              disabled={!excelDesde || !excelHasta}
+            >
               Descargar Excel
             </Button>
             <Button to="/admin/certificados/nuevo" icon={FilePlus2}>

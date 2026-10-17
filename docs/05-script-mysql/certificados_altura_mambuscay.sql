@@ -89,6 +89,7 @@ CREATE TABLE personas_certificadas (
   nombres             VARCHAR(100) NOT NULL,
   apellidos           VARCHAR(100) NOT NULL,
   fecha_nacimiento    DATE         NULL COMMENT 'Dato privado: no exponer en consulta pública',
+  genero              CHAR(1)      NULL COMMENT 'M o F. Dato privado: no exponer en consulta pública',
   correo              VARCHAR(150) NULL COMMENT 'Dato privado: no exponer en consulta pública',
   telefono            VARCHAR(30)  NULL COMMENT 'Dato privado: no exponer en consulta pública',
   activo              TINYINT(1) NOT NULL DEFAULT 1,
