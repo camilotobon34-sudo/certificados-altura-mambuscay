@@ -91,8 +91,8 @@ export const listar = async (filtros, pagination) => {
 export const exportarExcel = async (filtros) => {
   const { whereSql, params } = filtrosListado(filtros);
   const filas = await query(
-    `SELECT p.numero_documento AS cc, p.nombres, p.apellidos, c.empresa, c.arl,
-            cu.nombre AS curso, c.numero_certificado AS numeroCertificado,
+    `SELECT p.numero_documento AS cc, p.nombres, p.apellidos, p.fecha_nacimiento AS fechaNacimiento,
+            c.empresa, c.arl, cu.nombre AS curso, c.numero_certificado AS numeroCertificado,
             ${estadoEfectivoSql('c')} AS estado,
             c.fecha_expedicion AS fechaExpedicion, c.fecha_vencimiento AS fechaVencimiento
        FROM certificados c
@@ -116,6 +116,7 @@ export const exportarExcel = async (filtros) => {
     { header: 'Segundo nombre', key: 'segundoNombre', width: 18 },
     { header: 'Primer apellido', key: 'primerApellido', width: 18 },
     { header: 'Segundo apellido', key: 'segundoApellido', width: 18 },
+    { header: 'Fecha de nacimiento', key: 'fechaNacimiento', width: 16, numFmt: 'dd/mm/yyyy' },
     { header: 'Empresa', key: 'empresa', width: 36 },
     { header: 'ARL', key: 'arl', width: 14 },
     { header: 'Curso', key: 'curso', width: 42 },
@@ -125,6 +126,7 @@ export const exportarExcel = async (filtros) => {
     { header: 'Fecha de vencimiento', key: 'fechaVencimiento', width: 16 },
   ];
   hoja.columns = columnas;
+  hoja.getColumn('fechaNacimiento').numFmt = 'dd/mm/yyyy';
 
   const encabezado = hoja.getRow(1);
   encabezado.font = { bold: true, color: { argb: 'FFFFFFFF' } };
@@ -141,6 +143,7 @@ export const exportarExcel = async (filtros) => {
       segundoNombre: nombres.segundo.toUpperCase(),
       primerApellido: apellidos.primero.toUpperCase(),
       segundoApellido: apellidos.segundo.toUpperCase(),
+      fechaNacimiento: fila.fechaNacimiento ? new Date(`${String(fila.fechaNacimiento).slice(0, 10)}T12:00:00`) : '',
       empresa: (fila.empresa ?? '').toUpperCase(),
       arl: (fila.arl ?? '').toUpperCase(),
       curso: fila.curso,

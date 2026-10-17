@@ -12,7 +12,7 @@ import { useCatalogos } from '../../../hooks/useCatalogos.js'
 import { api } from '../../../lib/api.js'
 import { revisarNombre } from '../../../lib/revision-nombres.js'
 
-const EMPTY = { tipoDocumentoId: '', numeroDocumento: '', nombres: '', apellidos: '', correo: '', telefono: '', activo: true }
+const EMPTY = { tipoDocumentoId: '', numeroDocumento: '', nombres: '', apellidos: '', fechaNacimiento: '', correo: '', telefono: '', activo: true }
 
 const PrivateBadge = () => (
   <span className="inline-flex items-center gap-1 rounded-full bg-surface px-2 py-0.5 text-xs font-medium text-muted">
@@ -113,6 +113,7 @@ export default function PersonaFormPage() {
       numeroDocumento: persona.numeroDocumento,
       nombres: persona.nombres,
       apellidos: persona.apellidos,
+      fechaNacimiento: persona.fechaNacimiento ? String(persona.fechaNacimiento).slice(0, 10) : '',
       correo: persona.correo ?? '',
       telefono: persona.telefono ?? '',
       activo: Boolean(persona.activo),
@@ -161,6 +162,16 @@ export default function PersonaFormPage() {
           <Input label="Número de documento" required value={form.numeroDocumento} onChange={set('numeroDocumento')} error={fieldErrors.numeroDocumento} className="font-mono" />
           <Input label="Nombres" required value={form.nombres} onChange={set('nombres')} error={fieldErrors.nombres} />
           <Input label="Apellidos" required value={form.apellidos} onChange={set('apellidos')} error={fieldErrors.apellidos} />
+          <Input
+            label="Fecha de nacimiento"
+            type="date"
+            required
+            value={form.fechaNacimiento}
+            onChange={set('fechaNacimiento')}
+            error={fieldErrors.fechaNacimiento}
+            badge={<PrivateBadge />}
+            hint="Sale en el Excel de certificados. No se muestra en la consulta pública."
+          />
           <RevisionNombres form={form} onCorregir={(campo, valor) => setForm({ ...form, [campo]: valor })} />
           <PersonasParecidas items={parecidas} retornoEmitir={retornoEmitir} />
           <Input label="Correo electrónico" type="email" badge={<PrivateBadge />} value={form.correo} onChange={set('correo')} error={fieldErrors.correo} hint="No se muestra en la consulta pública." />

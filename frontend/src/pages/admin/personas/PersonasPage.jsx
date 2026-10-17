@@ -9,10 +9,12 @@ import { PageHeader } from '../../../components/ui/PageHeader.jsx'
 import { Pagination, Table } from '../../../components/ui/Table.jsx'
 import { useApi } from '../../../hooks/useApi.js'
 import { api } from '../../../lib/api.js'
+import { formatDate } from '../../../lib/format.js'
 
 const columns = [
   { key: 'documento', header: 'Documento', render: (p) => `${p.tipoDocumento} ${p.numeroDocumento}`, className: 'font-mono whitespace-nowrap' },
   { key: 'nombre', header: 'Nombre', render: (p) => `${p.apellidos}, ${p.nombres}` },
+  { key: 'fechaNacimiento', header: 'Nacimiento', render: (p) => formatDate(p.fechaNacimiento), className: 'whitespace-nowrap' },
   { key: 'correo', header: 'Correo', render: (p) => p.correo ?? '—' },
   { key: 'activo', header: 'Estado', render: (p) => (p.activo ? 'Activa' : <span className="text-muted">Inactiva</span>) },
 ]

@@ -48,6 +48,10 @@ export default function PersonaDetallePage() {
         <Card title="Datos de contacto">
           <dl className="flex flex-col gap-4">
             <div>
+              <dt className="text-sm text-muted">Fecha de nacimiento</dt>
+              <dd className="font-semibold">{formatDate(p.fechaNacimiento)}</dd>
+            </div>
+            <div>
               <dt className="text-sm text-muted">Correo</dt>
               <dd className="font-semibold">{p.correo ?? '—'}</dd>
             </div>
