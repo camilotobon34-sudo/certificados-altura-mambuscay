@@ -128,13 +128,13 @@ const filaExcel = (fila) => {
   const nombres = partirNombre(fila.nombres);
   const apellidos = partirNombre(fila.apellidos);
   return {
-    tipoDocumento: fila.tipoDocumentoNombre || fila.tipoDocumento,
+    tipoDocumento: fila.tipoDocumento,
     cc: fila.cc,
     primerNombre: nombres.primero.toUpperCase(),
     segundoNombre: nombres.segundo.toUpperCase(),
     primerApellido: apellidos.primero.toUpperCase(),
     segundoApellido: apellidos.segundo.toUpperCase(),
-    genero: fila.genero === 'F' ? 'Femenino' : fila.genero === 'M' ? 'Masculino' : '',
+    genero: fila.genero === 'F' || fila.genero === 'M' ? fila.genero : '',
     fechaNacimiento: aFechaExcel(fila.fechaNacimiento),
     empresa: (fila.empresa ?? '').toUpperCase(),
     arl: (fila.arl ?? '').toUpperCase(),
