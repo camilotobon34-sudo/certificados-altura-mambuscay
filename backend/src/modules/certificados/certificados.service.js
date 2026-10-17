@@ -10,6 +10,7 @@ import {
 } from '../../utils/constants.js';
 import { badRequest, conflict, notFound } from '../../utils/http-error.js';
 import { paginated } from '../../utils/pagination.js';
+import { guardarDesdeCertificado, listarParaEmision } from '../empresas/empresas.service.js';
 
 const SELECT_LISTADO = `
   SELECT c.id, c.numero_certificado AS numeroCertificado,
@@ -236,24 +237,8 @@ export const resumen = async () => {
   return { totales, proximosAVencer, ultimasEmisiones };
 };
 
-// Empresas de certificados anteriores, con los datos de su uso más reciente.
-// Altura Mambuscay es el centro de capacitación, no un empleador: se omite.
-export const empresasUsadas = async () => {
-  const filas = await query(
-    `SELECT empresa, nit_empresa AS nitEmpresa, representante_legal AS representanteLegal,
-            documento_representante AS documentoRepresentante, arl
-       FROM certificados
-      WHERE empresa IS NOT NULL AND empresa <> '' AND empresa NOT LIKE '%mambuscay%'
-      ORDER BY id DESC
-      LIMIT 2000`,
-  );
-  const vistas = new Map();
-  for (const fila of filas) {
-    const clave = fila.empresa.trim().replace(/\s+/g, ' ').toUpperCase();
-    if (!vistas.has(clave)) vistas.set(clave, fila);
-  }
-  return [...vistas.values()].sort((a, b) => a.empresa.localeCompare(b.empresa, 'es'));
-};
+// Catálogo de empleadores + las usadas en certificados anteriores.
+export const empresasUsadas = () => listarParaEmision();
 
 export const obtenerDetalle = async (id, { incluirInterno = true } = {}) => {
   const [certificado] = await query(
@@ -485,6 +470,7 @@ export const emitir = async (datos, usuario) => {
     return insertId;
   });
 
+  await guardarDesdeCertificado(datos).catch(() => {});
   return obtenerDetalle(id);
 };
 

@@ -13,6 +13,7 @@ import catalogosRoutes from './modules/catalogos/catalogos.routes.js';
 import personasRoutes from './modules/personas/personas.routes.js';
 import cursosRoutes from './modules/cursos/cursos.routes.js';
 import certificadosRoutes from './modules/certificados/certificados.routes.js';
+import empresasRoutes from './modules/empresas/empresas.routes.js';
 import usuariosRoutes from './modules/usuarios/usuarios.routes.js';
 import estudianteRoutes from './modules/estudiante/estudiante.routes.js';
 import configuracionRoutes from './modules/configuracion/configuracion.routes.js';
@@ -47,6 +48,7 @@ export const createApp = () => {
   app.use('/api/personas', ...internos, personasRoutes);
   app.use('/api/cursos', ...internos, cursosRoutes);
   app.use('/api/certificados', ...internos, certificadosRoutes);
+  app.use('/api/empresas', ...internos, empresasRoutes);
   app.use('/api/configuracion', ...internos, configuracionRoutes);
   app.use('/api/usuarios', authenticate, authorize(ROLES.ADMIN), usuariosRoutes);
   app.use('/api/reportes', authenticate, authorize(ROLES.ADMIN), reportesRoutes);

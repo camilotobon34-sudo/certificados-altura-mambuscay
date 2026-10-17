@@ -21,6 +21,8 @@ const CertificadoDetallePage = lazy(() => import('./pages/admin/certificados/Cer
 const EditarCertificadoPage = lazy(() => import('./pages/admin/certificados/EditarCertificadoPage.jsx'))
 const CuentaPage = lazy(() => import('./pages/admin/CuentaPage.jsx'))
 const PersonasPage = lazy(() => import('./pages/admin/personas/PersonasPage.jsx'))
+const EmpresasPage = lazy(() => import('./pages/admin/empresas/EmpresasPage.jsx'))
+const EmpresaFormPage = lazy(() => import('./pages/admin/empresas/EmpresaFormPage.jsx'))
 const PersonaFormPage = lazy(() => import('./pages/admin/personas/PersonaFormPage.jsx'))
 const PersonaDetallePage = lazy(() => import('./pages/admin/personas/PersonaDetallePage.jsx'))
 const CursosPage = lazy(() => import('./pages/admin/cursos/CursosPage.jsx'))
@@ -60,6 +62,9 @@ const router = createBrowserRouter([
               { path: 'certificados/nuevo', element: <EmitirCertificadoPage /> },
               { path: 'certificados/:id', element: <CertificadoDetallePage /> },
               { path: 'personas', element: <PersonasPage /> },
+              { path: 'empresas', element: <EmpresasPage /> },
+              { path: 'empresas/nueva', element: <EmpresaFormPage /> },
+              { path: 'empresas/:id/editar', element: <EmpresaFormPage /> },
               { path: 'personas/nueva', element: <PersonaFormPage /> },
               { path: 'personas/:id', element: <PersonaDetallePage /> },
               { path: 'personas/:id/editar', element: <PersonaFormPage /> },

@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import { Building2 } from 'lucide-react'
 import { Input, Select } from '../ui/Field.jsx'
 import { useApi } from '../../hooks/useApi.js'
@@ -60,7 +61,12 @@ export function DatosPlantillaFields({ values, curso, onChange, errors = {}, onC
         </h3>
         <p className="mt-1 mb-4 text-sm text-muted">
           Es la empresa que envía al trabajador a capacitarse, <strong>no Altura Mambuscay</strong>. Sale en el certificado como
-          “EMPRESA” o “EMPLEADOR”. Si la persona es independiente, deje estos datos vacíos y no saldrán.
+          “EMPRESA” o “EMPLEADOR”. Si la persona es independiente, deje estos datos vacíos y no saldrán. Las empresas fijas se
+          cargan en{' '}
+          <Link to="/admin/empresas" className="font-semibold text-primary underline">
+            Empresas
+          </Link>
+          , sin emitir un certificado.
         </p>
         {esElCentro && (
           <p role="alert" className="mb-4 rounded-[var(--radius-control)] border border-warning bg-warning-soft px-3 py-2 text-sm font-medium text-ink">
@@ -83,11 +89,7 @@ export function DatosPlantillaFields({ values, curso, onChange, errors = {}, onC
             list="empresas-usadas"
             autoComplete="off"
             placeholder="Escriba y elija de la lista, o escriba una nueva"
-            hint={
-              empresas.length
-                ? 'Si la empresa ya se usó antes, al elegirla se llenan solos el NIT, el representante y su cédula.'
-                : undefined
-            }
+            hint="Si ya está en Empresas o se usó antes, al elegirla se llenan NIT, representante y ARL. Las fijas se cargan en Empresas, sin emitir un certificado."
           />
           <datalist id="empresas-usadas">
             {empresas.map((x) => (
