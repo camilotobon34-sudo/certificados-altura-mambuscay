@@ -149,8 +149,11 @@ const relleno = (argb) => ({ type: 'pattern', pattern: 'solid', fgColor: { argb 
 const lineaFina = { style: 'thin', color: { argb: COLOR.linea } };
 const BORDES = { top: lineaFina, left: lineaFina, bottom: lineaFina, right: lineaFina };
 
+const FECHA_INDEFINIDA = '9999-12-31';
+
 const fechaExcel = (iso) => {
   if (!iso) return null;
+  if (iso.slice(0, 10) === FECHA_INDEFINIDA) return 'Indefinido';
   const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
   return new Date(Date.UTC(y, m - 1, d));
 };

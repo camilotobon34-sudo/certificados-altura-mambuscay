@@ -21,7 +21,14 @@ import {
   entrenadorPorDefecto,
   validarDatosPlantilla,
 } from '../../../lib/datos-plantilla.js'
-import { addMonthsIso, fullName, tituloFormacion } from '../../../lib/format.js'
+import {
+  addMonthsIso,
+  esCursoCoordinador,
+  esFechaIndefinida,
+  FECHA_VENCIMIENTO_INDEFINIDA,
+  fullName,
+  tituloFormacion,
+} from '../../../lib/format.js'
 
 function Formulario({ certificado: c, cursos }) {
   const navigate = useNavigate()
@@ -47,6 +54,7 @@ function Formulario({ certificado: c, cursos }) {
     }
   })
   const cursoElegido = cursos.find((cu) => String(cu.id) === form.cursoId)
+  const coordinador = esCursoCoordinador(cursoElegido)
   const [errors, setErrors] = useState({})
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -59,6 +67,22 @@ function Formulario({ certificado: c, cursos }) {
   const set = (campo) => (e) => {
     setForm({ ...form, [campo]: e.target.value })
     setErrors({ ...errors, [campo]: undefined })
+  }
+
+  const cambiarCurso = (e) => {
+    const cursoId = e.target.value
+    const elegido = cursos.find((cu) => String(cu.id) === cursoId)
+    setForm({
+      ...form,
+      cursoId,
+      fechaVencimiento: esCursoCoordinador(elegido)
+        ? FECHA_VENCIMIENTO_INDEFINIDA
+        : esFechaIndefinida(form.fechaVencimiento)
+          ? ''
+          : form.fechaVencimiento,
+      intensidadHoraria: elegido ? String(elegido.intensidadHoraria) : form.intensidadHoraria,
+    })
+    setErrors({ ...errors, cursoId: undefined, fechaVencimiento: undefined })
   }
 
   const submit = async (event) => {
@@ -107,7 +131,7 @@ function Formulario({ certificado: c, cursos }) {
             error={errors.numeroCertificado}
             className="font-mono uppercase"
           />
-          <Select label="Curso o programa" required options={opciones} value={form.cursoId} onChange={set('cursoId')} error={errors.cursoId} />
+          <Select label="Curso o programa" required options={opciones} value={form.cursoId} onChange={cambiarCurso} error={errors.cursoId} />
           <Input
             label="Intensidad horaria"
             type="number"
@@ -120,27 +144,53 @@ function Formulario({ certificado: c, cursos }) {
           />
           <Input label="Fecha de expedición" type="date" required value={form.fechaExpedicion} onChange={set('fechaExpedicion')} error={errors.fechaExpedicion} />
           <div className="flex flex-col gap-2">
-            <Input
-              label="Fecha de vencimiento"
-              type="date"
-              required
-              min={form.fechaExpedicion}
-              value={form.fechaVencimiento}
-              onChange={set('fechaVencimiento')}
-              error={errors.fechaVencimiento}
-            />
-            <div className="flex flex-wrap gap-1">
-              {[12, 18, 24].map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setForm({ ...form, fechaVencimiento: addMonthsIso(form.fechaExpedicion, m) })}
-                  className="min-h-9 rounded-full border border-line px-3 text-xs font-medium text-primary hover:bg-primary/5"
-                >
-                  +{m} meses
-                </button>
-              ))}
-            </div>
+            {coordinador || esFechaIndefinida(form.fechaVencimiento) ? (
+              <div className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-ink">
+                  Fecha de vencimiento <span className="text-danger">*</span>
+                </span>
+                <div className="flex min-h-11 items-center justify-between rounded-[var(--radius-control)] border border-line bg-surface-elevated px-3">
+                  <span className="font-semibold text-ink">Indefinido</span>
+                  {!coordinador && (
+                    <button
+                      type="button"
+                      className="text-sm font-medium text-primary hover:underline"
+                      onClick={() => setForm({ ...form, fechaVencimiento: '' })}
+                    >
+                      Cambiar
+                    </button>
+                  )}
+                </div>
+                {coordinador && (
+                  <p className="text-xs text-muted">En Coordinador la vigencia es indefinida, según la política del centro.</p>
+                )}
+                {errors.fechaVencimiento && <p className="text-sm text-danger">{errors.fechaVencimiento}</p>}
+              </div>
+            ) : (
+              <Input
+                label="Fecha de vencimiento"
+                type="date"
+                required
+                min={form.fechaExpedicion}
+                value={form.fechaVencimiento}
+                onChange={set('fechaVencimiento')}
+                error={errors.fechaVencimiento}
+              />
+            )}
+            {!coordinador && (
+              <div className="flex flex-wrap gap-1">
+                {[12, 18, 24].map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setForm({ ...form, fechaVencimiento: addMonthsIso(form.fechaExpedicion, m) })}
+                    className="min-h-9 rounded-full border border-line px-3 text-xs font-medium text-primary hover:bg-primary/5"
+                  >
+                    +{m} meses
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div className="md:col-span-2">
             <div className="mb-4 border-t border-line" />

@@ -1,8 +1,20 @@
 const TIME_ZONE = 'America/Bogota'
 
+// Valor guardado en BD cuando el centro define vigencia indefinida (la columna no admite NULL).
+export const FECHA_VENCIMIENTO_INDEFINIDA = '9999-12-31'
+
+export const esFechaIndefinida = (value) => String(value ?? '').slice(0, 10) === FECHA_VENCIMIENTO_INDEFINIDA
+
+// El centro define vigencia indefinida solo para Coordinador (prefijo C00RDAM-).
+export const esCursoCoordinador = (curso = {}) =>
+  curso.nivelCodigo === 'COORDINADOR' ||
+  /^C00RDAM/i.test(curso.prefijoCodigo || '') ||
+  /coordinador/i.test(`${curso.nombre || ''} ${curso.curso || ''}`)
+
 // Fechas de negocio llegan como 'YYYY-MM-DD'; se muestran DD/MM/AAAA sin conversión de zona.
 export const formatDate = (value) => {
   if (!value) return '—'
+  if (esFechaIndefinida(value)) return 'Indefinido'
   const [y, m, d] = String(value).slice(0, 10).split('-')
   return d && m && y ? `${d}/${m}/${y}` : String(value)
 }
@@ -10,6 +22,7 @@ export const formatDate = (value) => {
 // 'YYYY-MM-DD' → '30 de septiembre de 2026'
 export const formatLongDate = (value) => {
   if (!value) return '—'
+  if (esFechaIndefinida(value)) return 'Indefinido'
   const [y, m, d] = String(value).slice(0, 10).split('-').map(Number)
   if (!y || !m || !d) return String(value)
   return new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(

@@ -123,7 +123,12 @@ const isoAHoja = (iso) => {
   return d && m && y ? `${d}-${m}-${y}` : String(iso).slice(0, 10);
 };
 
-const aFechaExcel = (valor) => (valor ? new Date(`${String(valor).slice(0, 10)}T12:00:00`) : '');
+const aFechaExcel = (valor) => {
+  if (!valor) return '';
+  const iso = String(valor).slice(0, 10);
+  if (iso === '9999-12-31') return 'Indefinido';
+  return new Date(`${iso}T12:00:00`);
+};
 
 // En el Excel: CC, CE, TI, PA y PP (permiso por protección temporal).
 const tipoDocumentoExcel = (codigo) => (codigo === 'PPT' ? 'PP' : codigo || '');

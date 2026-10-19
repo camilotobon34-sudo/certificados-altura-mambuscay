@@ -26,7 +26,18 @@ import {
   entrenadorPorDefecto,
   validarDatosPlantilla,
 } from '../../../lib/datos-plantilla.js'
-import { addMonthsIso, esReentrenamiento, formatDate, formatLongDate, fullName, tituloFormacion, todayIso } from '../../../lib/format.js'
+import {
+  addMonthsIso,
+  esCursoCoordinador,
+  esFechaIndefinida,
+  esReentrenamiento,
+  FECHA_VENCIMIENTO_INDEFINIDA,
+  formatDate,
+  formatLongDate,
+  fullName,
+  tituloFormacion,
+  todayIso,
+} from '../../../lib/format.js'
 import { verificationUrl } from '../../../lib/verification.js'
 
 const STEPS = ['Persona', 'Curso y nivel', 'Fechas e intensidad', 'Empresa del trabajador', 'Revisión']
@@ -54,8 +65,10 @@ function CertificadosVigentes({ vigentes }) {
             <Link to={`/admin/certificados/${c.id}`} target="_blank" className="font-semibold underline-offset-2 hover:underline">
               {c.curso}
             </Link>{' '}
-            · <span className="font-mono">{c.numeroCertificado}</span> · expedido el {formatDate(c.fechaExpedicion)}, vence el{' '}
-            {formatDate(c.fechaVencimiento)}
+            · <span className="font-mono">{c.numeroCertificado}</span> · expedido el {formatDate(c.fechaExpedicion)}
+            {esFechaIndefinida(c.fechaVencimiento)
+              ? ', vigencia indefinida'
+              : `, vence el ${formatDate(c.fechaVencimiento)}`}
           </li>
         ))}
       </ul>
@@ -93,7 +106,11 @@ function AlertaDuplicado({ persona, certificado, onCancelar, onContinuar, onCerr
             <Link to={`/admin/certificados/${certificado.id}`} target="_blank" className="font-mono font-semibold text-ink hover:underline">
               {certificado.numeroCertificado}
             </Link>{' '}
-            · vigente hasta el {formatLongDate(certificado.fechaVencimiento)}.
+            ·{' '}
+            {esFechaIndefinida(certificado.fechaVencimiento)
+              ? 'con vigencia indefinida'
+              : `vigente hasta el ${formatLongDate(certificado.fechaVencimiento)}`}
+            .
           </p>
           <p className="text-sm">¿Desea sacar un nuevo certificado de todos modos?</p>
         </div>
@@ -225,6 +242,8 @@ function StepCurso({ curso, onSelect, vigentes }) {
 
 function StepFechas({ values, curso, onChange, errors }) {
   const setVenc = (months) => onChange({ ...values, fechaVencimiento: addMonthsIso(values.fechaExpedicion || todayIso(), months) })
+  const coordinador = esCursoCoordinador(curso)
+  const indefinido = esFechaIndefinida(values.fechaVencimiento)
   return (
     <div className="grid gap-4 md:grid-cols-3">
       <Input
@@ -236,23 +255,51 @@ function StepFechas({ values, curso, onChange, errors }) {
         error={errors.fechaExpedicion}
       />
       <div className="flex flex-col gap-2">
-        <Input
-          label="Fecha de vencimiento"
-          type="date"
-          required
-          min={values.fechaExpedicion}
-          value={values.fechaVencimiento}
-          onChange={(e) => onChange({ ...values, fechaVencimiento: e.target.value })}
-          error={errors.fechaVencimiento}
-          hint="Definida por la política del centro de formación."
-        />
-        <div className="flex flex-wrap gap-1">
-          {[12, 18, 24].map((m) => (
-            <button key={m} type="button" onClick={() => setVenc(m)} className="min-h-9 rounded-full border border-line px-3 text-xs font-medium text-primary hover:bg-primary/5">
-              +{m} meses
-            </button>
-          ))}
-        </div>
+        {coordinador || indefinido ? (
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-ink">
+              Fecha de vencimiento <span className="text-danger">*</span>
+            </span>
+            <div className="flex min-h-11 items-center justify-between rounded-[var(--radius-control)] border border-line bg-surface-elevated px-3">
+              <span className="font-semibold text-ink">Indefinido</span>
+              {!coordinador && (
+                <button
+                  type="button"
+                  className="text-sm font-medium text-primary hover:underline"
+                  onClick={() => onChange({ ...values, fechaVencimiento: '' })}
+                >
+                  Cambiar
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-muted">
+              {coordinador
+                ? 'En Coordinador la vigencia es indefinida, según la política del centro.'
+                : 'Definida por la política del centro de formación.'}
+            </p>
+            {errors.fechaVencimiento && <p className="text-sm text-danger">{errors.fechaVencimiento}</p>}
+          </div>
+        ) : (
+          <Input
+            label="Fecha de vencimiento"
+            type="date"
+            required
+            min={values.fechaExpedicion}
+            value={values.fechaVencimiento}
+            onChange={(e) => onChange({ ...values, fechaVencimiento: e.target.value })}
+            error={errors.fechaVencimiento}
+            hint="Definida por la política del centro de formación."
+          />
+        )}
+        {!coordinador && (
+          <div className="flex flex-wrap gap-1">
+            {[12, 18, 24].map((m) => (
+              <button key={m} type="button" onClick={() => setVenc(m)} className="min-h-9 rounded-full border border-line px-3 text-xs font-medium text-primary hover:bg-primary/5">
+                +{m} meses
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       <Input
         label="Intensidad horaria"
@@ -380,7 +427,16 @@ export default function EmitirCertificadoPage() {
     setCurso(c)
     setConfirmaDuplicado(false)
     setAlertaDuplicado(Boolean(vigenteDe(c)))
-    setFechas((f) => ({ ...f, intensidadHoraria: String(c.intensidadHoraria) }))
+    setFechas((f) => ({
+      ...f,
+      intensidadHoraria: String(c.intensidadHoraria),
+      // Coordinador: vigencia indefinida (política del centro). Otros cursos: quitar indefinido si venía de Coordinador.
+      fechaVencimiento: esCursoCoordinador(c)
+        ? FECHA_VENCIMIENTO_INDEFINIDA
+        : esFechaIndefinida(f.fechaVencimiento)
+          ? ''
+          : f.fechaVencimiento,
+    }))
     const entrenador = entrenadorPorDefecto(c)
     setPlantilla((v) => ({ ...v, entrenador, ...empresaPorDefecto(c, entrenador) }))
   }
