@@ -117,6 +117,18 @@ router.get('/excel', validate(filtrosSchema, 'query'), async (req, res) => {
   res.send(Buffer.from(buffer));
 });
 
+router.get('/excel-grupos', validate(filtrosSchema, 'query'), async (req, res) => {
+  const buffer = await service.exportarExcelGrupos(req.validated.query);
+  const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date());
+  const nombre = `Grupos-${req.validated.query.excelDesde ?? hoy}.xlsx`;
+  res.set({
+    'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'Content-Disposition': `attachment; filename="${nombre}"`,
+    'Cache-Control': 'no-store',
+  });
+  res.send(Buffer.from(buffer));
+});
+
 router.get('/resumen', async (_req, res) => {
   res.json(await service.resumen());
 });

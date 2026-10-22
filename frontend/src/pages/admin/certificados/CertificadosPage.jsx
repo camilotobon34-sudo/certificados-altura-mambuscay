@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
-import { FilePlus2, FileSpreadsheet, Search } from 'lucide-react'
+import { FilePlus2, FileSpreadsheet, Search, Users } from 'lucide-react'
 import { Alert } from '../../../components/ui/Alert.jsx'
 import { Button } from '../../../components/ui/Button.jsx'
 import { Card } from '../../../components/ui/Card.jsx'
@@ -37,7 +37,7 @@ export default function CertificadosPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [draft, setDraft] = useState(() => Object.fromEntries(FILTER_KEYS.map((k) => [k, searchParams.get(k) ?? ''])))
-  const [descargando, setDescargando] = useState(false)
+  const [descargando, setDescargando] = useState('')
   const [errorDescarga, setErrorDescarga] = useState('')
   const [excelDesde, setExcelDesde] = useState(firstDayOfMonthIso())
   const [excelHasta, setExcelHasta] = useState(todayIso())
@@ -68,19 +68,22 @@ export default function CertificadosPage() {
 
   const set = (key) => (e) => setDraft({ ...draft, [key]: e.target.value })
 
-  const descargarExcel = async () => {
+  const descargarExcel = async (tipo) => {
     setErrorDescarga('')
-    setDescargando(true)
+    setDescargando(tipo)
+    const grupos = tipo === 'grupos'
     try {
       await api.download(
-        '/certificados/excel',
+        grupos ? '/certificados/excel-grupos' : '/certificados/excel',
         { excelDesde, excelHasta },
-        `Certificados-${excelDesde}-a-${excelHasta}.xlsx`,
+        grupos
+          ? `Grupos-${excelDesde}-a-${excelHasta}.xlsx`
+          : `Certificados-${excelDesde}-a-${excelHasta}.xlsx`,
       )
     } catch (err) {
       setErrorDescarga(err.message)
     } finally {
-      setDescargando(false)
+      setDescargando('')
     }
   }
 
@@ -88,7 +91,7 @@ export default function CertificadosPage() {
     <>
       <PageHeader
         title="Certificados"
-        description="Consulte, filtre y gestione los certificados emitidos. El Excel trae una pestaña de color solo en los días con certificados (16-10-2026, 17-10-2026…), con tipo de documento, género, fechas y la hora en que se registró."
+        description="Consulte, filtre y gestione los certificados emitidos. El Excel de plantilla sigue igual. El Excel de grupos arma un bloque de color por día (GRUPO 259, 260…) con documento, nombre, número y empresa, para saber a quién va cada grupo."
         actions={
           <>
             <Input label="Excel desde" type="date" value={excelDesde} onChange={(e) => setExcelDesde(e.target.value)} />
@@ -96,11 +99,20 @@ export default function CertificadosPage() {
             <Button
               variant="secondary"
               icon={FileSpreadsheet}
-              onClick={descargarExcel}
-              loading={descargando}
-              disabled={!excelDesde || !excelHasta}
+              onClick={() => descargarExcel('plantilla')}
+              loading={descargando === 'plantilla'}
+              disabled={!excelDesde || !excelHasta || Boolean(descargando)}
             >
               Descargar Excel
+            </Button>
+            <Button
+              variant="secondary"
+              icon={Users}
+              onClick={() => descargarExcel('grupos')}
+              loading={descargando === 'grupos'}
+              disabled={!excelDesde || !excelHasta || Boolean(descargando)}
+            >
+              Excel grupos
             </Button>
             <Button to="/admin/certificados/nuevo" icon={FilePlus2}>
               Emitir certificado

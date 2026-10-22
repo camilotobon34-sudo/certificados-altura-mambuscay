@@ -122,6 +122,14 @@ const COLUMNAS_EXCEL = [
 ];
 
 const COLORES_PESTANA = ['FF548235', 'FF0D7377', 'FF9B4F96', 'FFC45911', 'FF2E75B6'];
+const COLORES_GRUPO = ['FFC45911', 'FFE6B325', 'FF548235', 'FF2E75B6', 'FF9B4F96'];
+const MESES_ES = [
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+];
+// El archivo del centro: 13 septiembre 2026 = GRUPO 259; cada día calendario suma 1 (también vacío).
+const GRUPO_REF_ISO = '2026-09-13';
+const GRUPO_REF_NUMERO = 259;
 
 const isoAHoja = (iso) => {
   const [y, m, d] = String(iso).slice(0, 10).split('-');
@@ -229,6 +237,115 @@ export const exportarExcel = async (filtros) => {
     });
     libro.views = [{ x: 0, y: 0, width: 12000, height: 8000, firstSheet: 0, activeTab: dias.length - 1, visibility: 'visible' }];
   }
+
+  return libro.xlsx.writeBuffer();
+};
+
+const partesIso = (iso) => String(iso).slice(0, 10).split('-').map(Number);
+
+const sumarDiasIso = (iso, n) => {
+  const [y, m, d] = partesIso(iso);
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+};
+
+const rangoDiasIso = (desde, hasta) => {
+  const dias = [];
+  let actual = String(desde).slice(0, 10);
+  const fin = String(hasta).slice(0, 10);
+  while (actual <= fin) {
+    dias.push(actual);
+    actual = sumarDiasIso(actual, 1);
+  }
+  return dias;
+};
+
+const numeroGrupoDelDia = (iso) => {
+  const [y1, m1, d1] = partesIso(GRUPO_REF_ISO);
+  const [y2, m2, d2] = partesIso(iso);
+  const dias = Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000);
+  return GRUPO_REF_NUMERO + dias;
+};
+
+const etiquetaFechaGrupo = (iso) => {
+  const [, m, d] = partesIso(iso);
+  return `${d} ${MESES_ES[m - 1] ?? ''}`.trim();
+};
+
+const documentoGrupo = (valor) => {
+  const digitos = String(valor ?? '').replace(/\D/g, '');
+  return digitos.replace(/\B(?=(\d{3})+(?!\d))/g, '.') || String(valor ?? '');
+};
+
+const empresaEntrenador = (fila) =>
+  [fila.empresa, fila.entrenador].filter(Boolean).join(' / ').toUpperCase();
+
+const pintarFilaGrupo = (hoja, fila, color) => {
+  const row = hoja.getRow(fila);
+  row.height = 22;
+  row.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 };
+  for (let col = 1; col <= 4; col += 1) {
+    const celda = row.getCell(col);
+    celda.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: color } };
+    celda.alignment = { vertical: 'middle', horizontal: col === 4 ? 'right' : 'left' };
+  }
+};
+
+export const exportarExcelGrupos = async (filtros) => {
+  const { whereSql, params } = filtrosListado(filtros);
+  const filas = await query(
+    `SELECT p.numero_documento AS cc, p.nombres, p.apellidos,
+            c.numero_certificado AS numeroCertificado, c.empresa, c.entrenador,
+            DATE(c.creado_en) AS fechaRegistro
+       FROM certificados c
+       JOIN personas_certificadas p ON p.id = c.persona_id
+       JOIN tipos_documento td ON td.id = p.tipo_documento_id
+       JOIN cursos cu ON cu.id = c.curso_id
+       ${whereSql}
+       ORDER BY c.creado_en, c.id`,
+    params,
+  );
+
+  const porDia = new Map();
+  for (const fila of filas) {
+    const iso = String(fila.fechaRegistro).slice(0, 10);
+    if (!porDia.has(iso)) porDia.set(iso, []);
+    porDia.get(iso).push(fila);
+  }
+
+  const desde = filtros.excelDesde || [...porDia.keys()].sort()[0] || new Date().toISOString().slice(0, 10);
+  const hasta = filtros.excelHasta || [...porDia.keys()].sort().at(-1) || desde;
+  const dias = rangoDiasIso(desde, hasta);
+
+  const libro = new ExcelJS.Workbook();
+  libro.creator = 'Certificados Altura Mambuscay';
+  libro.created = new Date();
+  const hoja = libro.addWorksheet('Grupos', { views: [{ showGridLines: false }] });
+  hoja.columns = [
+    { width: 18 },
+    { width: 42 },
+    { width: 18 },
+    { width: 48 },
+  ];
+
+  let fila = 1;
+  dias.forEach((iso, i) => {
+    const color = COLORES_GRUPO[i % COLORES_GRUPO.length];
+    hoja.mergeCells(fila, 1, fila, 3);
+    hoja.getCell(fila, 1).value = `GRUPO ${numeroGrupoDelDia(iso)}`;
+    hoja.getCell(fila, 4).value = etiquetaFechaGrupo(iso);
+    pintarFilaGrupo(hoja, fila, color);
+    fila += 1;
+    for (const persona of porDia.get(iso) || []) {
+      const row = hoja.getRow(fila);
+      row.getCell(1).value = documentoGrupo(persona.cc);
+      row.getCell(2).value = `${persona.nombres ?? ''} ${persona.apellidos ?? ''}`.replace(/\s+/g, ' ').trim().toUpperCase();
+      row.getCell(3).value = persona.numeroCertificado;
+      row.getCell(4).value = empresaEntrenador(persona);
+      row.alignment = { vertical: 'middle' };
+      row.height = 18;
+      fila += 1;
+    }
+  });
 
   return libro.xlsx.writeBuffer();
 };
