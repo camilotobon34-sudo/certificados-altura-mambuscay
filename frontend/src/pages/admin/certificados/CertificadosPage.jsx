@@ -91,7 +91,7 @@ export default function CertificadosPage() {
     <>
       <PageHeader
         title="Certificados"
-        description="Consulte, filtre y gestione los certificados emitidos. El Excel de plantilla sigue igual. El Excel de grupos arma un bloque de color por día (GRUPO 259, 260…) con documento, nombre, número y empresa, para saber a quién va cada grupo."
+        description="Consulte, filtre y gestione los certificados emitidos. El Excel de plantilla sigue igual. El Excel de grupos usa el día de fin de formación (no el de registro) y trae tres hojas: Reentrenamientos, Autorizados y Coordinadores."
         actions={
           <>
             <Input label="Excel desde" type="date" value={excelDesde} onChange={(e) => setExcelDesde(e.target.value)} />

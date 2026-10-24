@@ -290,43 +290,23 @@ const pintarFilaGrupo = (hoja, fila, color) => {
   }
 };
 
-export const exportarExcelGrupos = async (filtros) => {
-  const { whereSql, params } = filtrosListado(filtros);
-  const filas = await query(
-    `SELECT p.numero_documento AS cc, p.nombres, p.apellidos,
-            c.numero_certificado AS numeroCertificado, c.empresa, c.entrenador,
-            DATE(c.creado_en) AS fechaRegistro
-       FROM certificados c
-       JOIN personas_certificadas p ON p.id = c.persona_id
-       JOIN tipos_documento td ON td.id = p.tipo_documento_id
-       JOIN cursos cu ON cu.id = c.curso_id
-       ${whereSql}
-       ORDER BY c.creado_en, c.id`,
-    params,
-  );
+// Día del grupo = día de clase (fin de formación), no el día en que lo digitaron.
+const FECHA_GRUPO_SQL = 'COALESCE(c.fecha_fin_formacion, c.fecha_expedicion, DATE(c.creado_en))';
 
-  const porDia = new Map();
-  for (const fila of filas) {
-    const iso = String(fila.fechaRegistro).slice(0, 10);
-    if (!porDia.has(iso)) porDia.set(iso, []);
-    porDia.get(iso).push(fila);
+const HOJAS_GRUPO = ['Reentrenamientos', 'Autorizados', 'Coordinadores'];
+
+const hojaGrupoDe = (fila) => {
+  const texto = `${fila.curso || ''} ${fila.nivel || ''}`;
+  if (fila.tipoActividadCodigo === TIPOS_ACTIVIDAD.REENTRENAMIENTO || /reentrenamiento/i.test(texto)) {
+    return 'Reentrenamientos';
   }
+  if (/coordinador/i.test(texto)) return 'Coordinadores';
+  return 'Autorizados';
+};
 
-  const desde = filtros.excelDesde || [...porDia.keys()].sort()[0] || new Date().toISOString().slice(0, 10);
-  const hasta = filtros.excelHasta || [...porDia.keys()].sort().at(-1) || desde;
-  const dias = rangoDiasIso(desde, hasta);
-
-  const libro = new ExcelJS.Workbook();
-  libro.creator = 'Certificados Altura Mambuscay';
-  libro.created = new Date();
-  const hoja = libro.addWorksheet('Grupos', { views: [{ showGridLines: false }] });
-  hoja.columns = [
-    { width: 18 },
-    { width: 42 },
-    { width: 18 },
-    { width: 48 },
-  ];
-
+const llenarHojaGrupos = (libro, nombre, dias, porDia) => {
+  const hoja = libro.addWorksheet(nombre, { views: [{ showGridLines: false }] });
+  hoja.columns = [{ width: 18 }, { width: 42 }, { width: 18 }, { width: 48 }];
   let fila = 1;
   dias.forEach((iso, i) => {
     const color = COLORES_GRUPO[i % COLORES_GRUPO.length];
@@ -346,6 +326,57 @@ export const exportarExcelGrupos = async (filtros) => {
       fila += 1;
     }
   });
+};
+
+export const exportarExcelGrupos = async (filtros) => {
+  // El filtro de fechas del Excel de plantilla usa creado_en; aquí usamos el día de clase.
+  const { excelDesde, excelHasta, ...resto } = filtros;
+  const base = filtrosListado(resto);
+  const where = [base.whereSql.replace(/^WHERE\s+/i, ''), `${FECHA_GRUPO_SQL} IS NOT NULL`].filter(Boolean);
+  const params = [...base.params];
+  if (excelDesde) {
+    where.push(`${FECHA_GRUPO_SQL} >= ?`);
+    params.push(excelDesde);
+  }
+  if (excelHasta) {
+    where.push(`${FECHA_GRUPO_SQL} <= ?`);
+    params.push(excelHasta);
+  }
+
+  const filas = await query(
+    `SELECT p.numero_documento AS cc, p.nombres, p.apellidos,
+            c.numero_certificado AS numeroCertificado, c.empresa, c.entrenador,
+            cu.nombre AS curso, nf.nombre AS nivel, ta.codigo AS tipoActividadCodigo,
+            ${FECHA_GRUPO_SQL} AS fechaGrupo
+       FROM certificados c
+       JOIN personas_certificadas p ON p.id = c.persona_id
+       JOIN tipos_documento td ON td.id = p.tipo_documento_id
+       JOIN cursos cu ON cu.id = c.curso_id
+       JOIN tipos_actividad ta ON ta.id = cu.tipo_actividad_id
+       LEFT JOIN niveles_formacion nf ON nf.id = cu.nivel_formacion_id
+      WHERE ${where.join(' AND ')}
+      ORDER BY ${FECHA_GRUPO_SQL}, c.id`,
+    params,
+  );
+
+  const porHoja = Object.fromEntries(HOJAS_GRUPO.map((nombre) => [nombre, new Map()]));
+  for (const fila of filas) {
+    const iso = String(fila.fechaGrupo).slice(0, 10);
+    const hoja = hojaGrupoDe(fila);
+    if (!porHoja[hoja].has(iso)) porHoja[hoja].set(iso, []);
+    porHoja[hoja].get(iso).push(fila);
+  }
+
+  const desde = excelDesde || [...filas.map((f) => String(f.fechaGrupo).slice(0, 10))].sort()[0]
+    || new Date().toISOString().slice(0, 10);
+  const hasta = excelHasta || [...filas.map((f) => String(f.fechaGrupo).slice(0, 10))].sort().at(-1) || desde;
+  const dias = rangoDiasIso(desde, hasta);
+
+  const libro = new ExcelJS.Workbook();
+  libro.creator = 'Certificados Altura Mambuscay';
+  libro.created = new Date();
+  for (const nombre of HOJAS_GRUPO) llenarHojaGrupos(libro, nombre, dias, porHoja[nombre]);
+  libro.views = [{ x: 0, y: 0, width: 12000, height: 8000, firstSheet: 0, activeTab: 0, visibility: 'visible' }];
 
   return libro.xlsx.writeBuffer();
 };
